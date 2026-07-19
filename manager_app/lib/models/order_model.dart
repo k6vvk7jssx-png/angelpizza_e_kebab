@@ -9,6 +9,7 @@ class OrderModel {
   final double totalPrice;
   final String? notes;
   final DateTime createdAt;
+  final List<dynamic> items;
 
   OrderModel({
     required this.id,
@@ -21,20 +22,35 @@ class OrderModel {
     required this.totalPrice,
     this.notes,
     required this.createdAt,
+    required this.items,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
+    final deliveryAddress = json['delivery_address'] as String?;
+    final deducedDeliveryType = (deliveryAddress != null && deliveryAddress.isNotEmpty)
+        ? 'delivery'
+        : 'pickup';
+
+    final rawItems = json['items'] as List<dynamic>? ?? [];
+
     return OrderModel(
-      id: json['id'] as String,
-      guestName: json['guest_name'] as String,
-      guestPhone: json['guest_phone'] as String,
-      guestAddress: json['guest_address'] as String?,
-      deliveryType: json['delivery_type'] as String,
-      status: json['status'] as String,
-      requestedTime: DateTime.parse(json['requested_time'] as String),
-      totalPrice: (json['total_price'] as num).toDouble(),
+      id: json['id'] as String? ?? '',
+      guestName: json['guest_name'] as String? ?? 'Ospite',
+      guestPhone: json['guest_phone'] as String? ?? '',
+      guestAddress: deliveryAddress,
+      deliveryType: deducedDeliveryType,
+      status: json['status'] as String? ?? 'pending',
+      requestedTime: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String) 
+          : DateTime.now(),
+      totalPrice: json['total_amount'] != null
+          ? (json['total_amount'] as num).toDouble()
+          : 0.0,
       notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String) 
+          : DateTime.now(),
+      items: rawItems,
     );
   }
 
@@ -43,13 +59,14 @@ class OrderModel {
       'id': id,
       'guest_name': guestName,
       'guest_phone': guestPhone,
-      'guest_address': guestAddress,
+      'delivery_address': guestAddress,
       'delivery_type': deliveryType,
       'status': status,
       'requested_time': requestedTime.toIso8601String(),
       'total_price': totalPrice,
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
+      'items': items,
     };
   }
 }

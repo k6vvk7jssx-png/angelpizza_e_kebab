@@ -91,6 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               totalPrice: _orders[index].totalPrice,
               notes: _orders[index].notes,
               createdAt: _orders[index].createdAt,
+              items: _orders[index].items,
             );
             _orders[index] = updatedOrder;
             if (_selectedOrder?.id == id) {
@@ -322,7 +323,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       style: const TextStyle(color: Colors.white, fontSize: 16),
                                     ),
                                   ],
-                                  const SizedBox(height: 6),
                                   Text(
                                     'TIPO RITIRO: ${_selectedOrder!.deliveryType == 'delivery' ? 'CONSEGNA A DOMICILIO' : 'ASPORTO'}',
                                     style: TextStyle(
@@ -331,6 +331,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                                  const SizedBox(height: 20),
+
+                                  // Ordered Items Title
+                                  const Text(
+                                    'ARTICOLI ORDINATI:',
+                                    style: TextStyle(
+                                      color: Color(0xFFFACC15),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // Ordered Items List
+                                  if (_selectedOrder!.items.isEmpty)
+                                    const Text(
+                                      'Nessun articolo trovato per questo ordine.',
+                                      style: TextStyle(color: Colors.white60, fontStyle: FontStyle.italic),
+                                    )
+                                  else
+                                    ..._selectedOrder!.items.map<Widget>((item) {
+                                      final name = item['name'] ?? 'Piatto';
+                                      final qty = item['qty'] ?? 1;
+                                      final price = item['price_at_order'] ?? 0.0;
+                                      
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              '${qty}x ${name}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            Text(
+                                              '€${(price * qty).toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
                                   const SizedBox(height: 20),
                                   
                                   // Total and Notes Card
