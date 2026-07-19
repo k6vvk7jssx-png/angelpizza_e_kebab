@@ -9,9 +9,17 @@
   display: flex;
   gap: 10px;
   margin-bottom: 2rem;
+  padding-bottom: 0.75rem;
   overflow-x: auto;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #1c1917;
+  white-space: nowrap;
+  width: 100%;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.categoriesContainer::-webkit-scrollbar {
+  display: none; /* Safari/Chrome/Edge */
 }
 
 .categoryButton {
@@ -26,6 +34,7 @@
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .categoryButton:hover {
