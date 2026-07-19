@@ -684,7 +684,7 @@ export default function Home() {
           </div>
           <div className={styles.footerInfo}>
             <h3>Tecnologia</h3>
-            <p>Sviluppato con <strong>Google Antigravity Core</strong> & <strong>Supabase</strong>.</p>
+            <p>Sviluppato con <strong>tecnologie cloud moderne</strong> & <strong>Supabase</strong>.</p>
             <p>Ordinazioni real-time collegate all'applicazione del gestore.</p>
           </div>
         </div>
