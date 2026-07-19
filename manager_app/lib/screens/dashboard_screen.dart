@@ -109,6 +109,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       await _orderService.updateOrderStatus(_selectedOrder!.id, status);
       
+      setState(() {
+        final index = _orders.indexWhere((o) => o.id == _selectedOrder!.id);
+        if (index != -1) {
+          final updatedOrder = OrderModel(
+            id: _orders[index].id,
+            guestName: _orders[index].guestName,
+            guestPhone: _orders[index].guestPhone,
+            guestAddress: _orders[index].guestAddress,
+            deliveryType: _orders[index].deliveryType,
+            status: status,
+            requestedTime: _orders[index].requestedTime,
+            totalPrice: _orders[index].totalPrice,
+            notes: _orders[index].notes,
+            createdAt: _orders[index].createdAt,
+            items: _orders[index].items,
+          );
+          _orders[index] = updatedOrder;
+          _selectedOrder = updatedOrder;
+        }
+      });
+
       // If we accept/process the order, stop the alarm sound automatically
       if (status == 'accepted' || status == 'cancelled') {
         await _notificationManager.stopOrderAlarm();
@@ -116,6 +137,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Errore durante l\'aggiornamento: $e')),
+      );
+    }
+  }
+
+  // Update order requested time in database and locally
+  Future<void> _updateOrderTime(int minutesDelta) async {
+    if (_selectedOrder == null) return;
+    try {
+      final newTime = _selectedOrder!.requestedTime.add(Duration(minutes: minutesDelta));
+      await _orderService.updateOrderTime(_selectedOrder!.id, newTime);
+      
+      setState(() {
+        final index = _orders.indexWhere((o) => o.id == _selectedOrder!.id);
+        if (index != -1) {
+          final updatedOrder = OrderModel(
+            id: _orders[index].id,
+            guestName: _orders[index].guestName,
+            guestPhone: _orders[index].guestPhone,
+            guestAddress: _orders[index].guestAddress,
+            deliveryType: _orders[index].deliveryType,
+            status: _orders[index].status,
+            requestedTime: newTime,
+            totalPrice: _orders[index].totalPrice,
+            notes: _orders[index].notes,
+            createdAt: _orders[index].createdAt,
+            items: _orders[index].items,
+          );
+          _orders[index] = updatedOrder;
+          _selectedOrder = updatedOrder;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Orario aggiornato a ${_formatTime(newTime)}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore durante l\'aggiornamento dell\'orario: $e')),
       );
     }
   }
@@ -323,13 +381,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       style: const TextStyle(color: Colors.white, fontSize: 16),
                                     ),
                                   ],
-                                  Text(
+                                   Text(
                                     'TIPO RITIRO: ${_selectedOrder!.deliveryType == 'delivery' ? 'CONSEGNA A DOMICILIO' : 'ASPORTO'}',
                                     style: TextStyle(
                                       color: const Color(0xFFFACC15),
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'ORARIO RICHIESTO: ${_formatTime(_selectedOrder!.requestedTime)}',
+                                        style: const TextStyle(
+                                          color: Color(0xFFFACC15),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 28),
+                                            tooltip: 'Anticipa 10 min',
+                                            onPressed: () => _updateOrderTime(-10),
+                                          ),
+                                          const Text(
+                                            'MODIFICA',
+                                            style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.add_circle_outline, color: Colors.green, size: 28),
+                                            tooltip: 'Posticipa 10 min',
+                                            onPressed: () => _updateOrderTime(10),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 20),
 

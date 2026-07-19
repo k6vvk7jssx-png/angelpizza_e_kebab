@@ -20,6 +20,47 @@ export default function Home() {
   const [guestPhone, setGuestPhone] = useState('');
   const [guestAddress, setGuestAddress] = useState('');
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
+  const [selectedTime, setSelectedTime] = useState('asap');
+  const [orderEstimatedTime, setOrderEstimatedTime] = useState<string | null>(null);
+
+  // Generate 15-minute time slots starting from now + 30 minutes up to 23:45
+  const getTimeSlots = () => {
+    const slots = [];
+    const now = new Date();
+    const startTime = new Date(now.getTime() + 30 * 60 * 1000);
+    
+    // Round to next 15 minutes
+    const minutes = startTime.getMinutes();
+    const roundedMinutes = Math.ceil(minutes / 15) * 15;
+    startTime.setMinutes(roundedMinutes);
+    startTime.setSeconds(0);
+    startTime.setMilliseconds(0);
+
+    const endTime = new Date();
+    endTime.setHours(23);
+    endTime.setMinutes(45);
+
+    let current = new Date(startTime);
+    while (current <= endTime) {
+      const hoursStr = current.getHours().toString().padStart(2, '0');
+      const minStr = current.getMinutes().toString().padStart(2, '0');
+      slots.push(`${hoursStr}:${minStr}`);
+      current.setMinutes(current.getMinutes() + 15);
+    }
+    return slots;
+  };
+
+  const formatEstimatedTime = (timeStr: string | null) => {
+    if (!timeStr) return "30-40 minuti";
+    try {
+      const date = new Date(timeStr);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const mins = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${mins}`;
+    } catch (e) {
+      return "30-40 minuti";
+    }
+  };
   
   // OTP simulation details
   const [otpPhone, setOtpPhone] = useState('');
@@ -74,8 +115,9 @@ export default function Home() {
         'postgres_changes',
         { event: 'UPDATE', filter: `id=eq.${placedOrderId}`, schema: 'public', table: 'orders' },
         (payload) => {
-          if (payload.new && payload.new.status) {
-            setOrderStatus(payload.new.status);
+          if (payload.new) {
+            if (payload.new.status) setOrderStatus(payload.new.status);
+            if (payload.new.requested_time) setOrderEstimatedTime(payload.new.requested_time);
           }
         }
       )
@@ -123,6 +165,18 @@ export default function Home() {
     try {
       setIsSubmitting(true);
 
+      // Calculate requested_time ISO string
+      let requestedTimeIso = new Date();
+      if (selectedTime === 'asap') {
+        requestedTimeIso = new Date(requestedTimeIso.getTime() + 30 * 60 * 1000); // default +30 minutes
+      } else {
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        requestedTimeIso.setHours(hours);
+        requestedTimeIso.setMinutes(minutes);
+        requestedTimeIso.setSeconds(0);
+        requestedTimeIso.setMilliseconds(0);
+      }
+
       const orderPayload = {
         guest_name: customerName,
         guest_phone: customerPhone,
@@ -137,6 +191,7 @@ export default function Home() {
         payment_method: paymentMethod,
         payment_status: 'pending',
         status: 'pending',
+        requested_time: requestedTimeIso.toISOString(),
       };
 
       const { data: orderData, error: orderError } = await supabase
@@ -149,7 +204,8 @@ export default function Home() {
 
       // Success
       setPlacedOrderId(orderData.id);
-      setOrderStatus('pending');
+      setOrderStatus(orderData.status);
+      setOrderEstimatedTime(orderData.requested_time);
       setCart([]);
       setIsCheckingOut(false);
       
@@ -224,7 +280,13 @@ export default function Home() {
           </div>
 
           <p className={styles.trackerTime}>
-            Tempo stimato di consegna: 30 minuti. Rimani su questa pagina per tracciare gli aggiornamenti in tempo reale.
+            {orderStatus === 'completed' 
+              ? 'L\'ordine è stato consegnato!' 
+              : orderStatus === 'cancelled'
+              ? 'L\'ordine è stato annullato.'
+              : `Orario di consegna/ritiro stimato: ${formatEstimatedTime(orderEstimatedTime)}.`}
+            <br />
+            Rimani su questa pagina per tracciare gli aggiornamenti in tempo reale.
           </p>
 
           <button
@@ -485,6 +547,20 @@ export default function Home() {
                           placeholder="333 1234567"
                           className={styles.formInput}
                         />
+                      </div>
+
+                      <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Orario Consegna/Ritiro *</label>
+                        <select
+                          value={selectedTime}
+                          onChange={(e) => setSelectedTime(e.target.value)}
+                          className={styles.formInput}
+                        >
+                          <option value="asap">Prima possibile (circa 30-40 min)</option>
+                          {getTimeSlots().map(time => (
+                            <option key={time} value={time}>{time}</option>
+                          ))}
+                        </select>
                       </div>
                     </>
                   ) : (

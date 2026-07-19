@@ -26,6 +26,14 @@ class OrderService {
         .eq('id', orderId);
   }
 
+  // Update requested time of a specific order
+  Future<void> updateOrderTime(String orderId, DateTime newTime) async {
+    await _client
+        .from('orders')
+        .update({'requested_time': newTime.toIso8601String()})
+        .eq('id', orderId);
+  }
+
   // Subscribe to real-time insertions on the orders table
   RealtimeChannel subscribeToOrders({
     required void Function(OrderModel order) onNewOrder,
