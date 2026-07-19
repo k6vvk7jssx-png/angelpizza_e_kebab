@@ -372,6 +372,20 @@
   gap: 1.5rem;
 }
 
+@media (min-width: 1024px) {
+  .sidebar {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+  }
+  .sidebar::-webkit-scrollbar {
+    display: none; /* Safari/Chrome/Edge */
+  }
+}
+
 .sidebarWidget {
   background-color: white;
   border: 3px solid #1c1917;
