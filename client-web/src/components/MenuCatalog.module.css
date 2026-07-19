@@ -1,21 +1,43 @@
 .container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+  width: 100%;
   font-family: var(--font-outfit), sans-serif;
   color: #1c1917;
 }
 
-.title {
-  font-family: var(--font-montserrat), sans-serif;
-  font-weight: 900;
-  font-size: 2.25rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  text-align: center;
-  color: #ea580c;
+/* Category Filter Tabs styled as rounded pills */
+.categoriesContainer {
+  display: flex;
+  gap: 10px;
   margin-bottom: 2rem;
-  text-shadow: 1.5px 1.5px 0px #facc15;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #1c1917;
+}
+
+.categoryButton {
+  background-color: #ffffff;
+  color: #1c1917;
+  border: 2px solid #1c1917;
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 99px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  text-transform: uppercase;
+}
+
+.categoryButton:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 3px 3px 0px #1c1917;
+  background-color: #fef08a; /* --accent-yellow-light */
+}
+
+.activeCategoryButton {
+  background-color: #facc15; /* --accent-yellow */
+  box-shadow: 2px 2px 0px #1c1917;
+  transform: translate(-1px, -1px);
 }
 
 .loading, .error {
@@ -26,146 +48,101 @@
   font-weight: 700;
 }
 
-/* Category Filter Tabs */
-.categoriesContainer {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 3rem;
-  border-bottom: 2px solid #1c1917;
-  padding-bottom: 1rem;
+/* Grid Layout of Cards */
+.menuGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
 }
 
-.categoryButton {
+.menuCard {
   background-color: #ffffff;
-  color: #1c1917;
   border: 2px solid #1c1917;
-  padding: 0.5rem 1rem;
-  font-weight: 800;
-  font-size: 0.9rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 2px 2px 0px #1c1917;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.categoryButton:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 4px 4px 0px #1c1917;
-  background-color: #facc15;
-  border-color: #ea580c;
-}
-
-.activeCategoryButton {
-  background-color: #facc15;
-  transform: translate(1px, 1px) scale(1);
-  box-shadow: 1px 1px 0px #1c1917;
-  border-color: #ea580c;
-}
-
-/* Menu Layout */
-.menuList {
+  border-radius: 10px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
-}
-
-.categorySection {
-  margin-bottom: 1rem;
-}
-
-.categoryHeader {
-  font-family: var(--font-montserrat), sans-serif;
-  font-weight: 900;
-  font-size: 1.5rem;
-  color: #1c1917;
-  background-color: #facc15;
-  border: 2px solid #1c1917;
-  padding: 0.5rem 1rem;
-  margin-bottom: 1.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-radius: 6px;
-  display: inline-block;
-  box-shadow: 3px 3px 0px #1c1917;
-}
-
-/* Traditional Italian Menu Row styling with Dotted Divider */
-.itemRowContainer {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px dashed #e7e5e4;
-}
-
-.itemHeaderLine {
-  display: flex;
-  align-items: baseline;
   justify-content: space-between;
-  width: 100%;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.itemName {
-  font-weight: 800;
+.menuCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 4px 4px 0px #1c1917;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: var(--font-montserrat), sans-serif;
   font-size: 1.15rem;
-  color: #1c1917;
+  font-weight: 900;
   text-transform: uppercase;
-  white-space: nowrap;
+  color: #1c1917;
+  line-height: 1.2;
 }
 
-.dottedDivider {
-  flex-grow: 1;
-  border-bottom: 3px dotted #1c1917;
-  margin: 0 0.75rem;
-  height: 1px;
-}
-
-.itemPrice {
+.cardPrice {
+  font-family: var(--font-montserrat), sans-serif;
   font-weight: 900;
   font-size: 1.15rem;
   color: #ea580c;
   white-space: nowrap;
 }
 
-.itemDescription {
-  font-size: 0.95rem;
-  color: #4b5563;
-  margin-top: 0.35rem;
-  max-width: 80%;
+.cardDescription {
+  font-size: 0.9rem;
+  color: #666666;
+  margin-bottom: 1.25rem;
   line-height: 1.4;
+  flex-grow: 1;
 }
 
-.itemFooterAction {
+.cardFooter {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
 }
 
+.cardCode {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #888888;
+  font-weight: 600;
+}
+
+/* Add Button styled with yellow/gold and black border */
 .addButton {
-  background-color: #ea580c;
-  color: #ffffff;
+  background-color: #facc15;
+  color: #1c1917;
   border: 2px solid #1c1917;
-  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  padding: 6px 12px;
   font-weight: 800;
   font-size: 0.85rem;
-  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 2px 2px 0px #1c1917;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   text-transform: uppercase;
+  box-shadow: 2px 2px 0px #1c1917;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .addButton:hover {
-  background-color: #facc15;
-  color: #1c1917;
+  background-color: #fef08a;
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 4px 4px 0px #ea580c;
-  border-color: #ea580c;
+  box-shadow: 3px 3px 0px #1c1917;
 }
 
 .addButton:active {
-  transform: scale(0.95);
-  box-shadow: 0px 0px 0px #ea580c;
+  transform: translate(1px, 1px) scale(0.98);
+  box-shadow: 1px 1px 0px #1c1917;
 }

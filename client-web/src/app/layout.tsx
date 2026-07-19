@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit, Montserrat } from "next/font/google";
+import { Outfit, Montserrat, Playball } from "next/font/google";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -9,6 +9,12 @@ const outfit = Outfit({
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
+  subsets: ["latin"],
+});
+
+const playball = Playball({
+  weight: "400",
+  variable: "--font-playball",
   subsets: ["latin"],
 });
 
@@ -25,7 +31,7 @@ export default function RootLayout({
   return (
     <html
       lang="it"
-      className={`${outfit.variable} ${montserrat.variable} h-full antialiased`}
+      className={`${outfit.variable} ${montserrat.variable} ${playball.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

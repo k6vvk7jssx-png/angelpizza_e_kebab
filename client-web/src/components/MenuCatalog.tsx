@@ -45,7 +45,8 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
         const { data, error: fetchError } = await supabase
           .from('menu_items')
           .select('*')
-          .eq('is_available', true);
+          .eq('is_available', true)
+          .order('id', { ascending: true });
 
         if (fetchError) {
           throw fetchError;
@@ -76,15 +77,8 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
     ? menuItems
     : menuItems.filter(item => item.category === selectedCategory);
 
-  // Group items by category to render individual sections
-  const categoriesToRender = selectedCategory === 'tutti'
-    ? CATEGORIES.filter(c => c.id !== 'tutti')
-    : CATEGORIES.filter(c => c.id === selectedCategory);
-
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>Il Nostro Menu</h2>
-
       {/* Category Navigation Tabs */}
       <div className={styles.categoriesContainer}>
         {CATEGORIES.map(category => (
@@ -100,42 +94,31 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
         ))}
       </div>
 
-      {/* List of items grouped by category with traditional dotted dividers */}
-      <div className={styles.menuList}>
-        {categoriesToRender.map(category => {
-          const categoryItems = filteredItems.filter(item => item.category === category.id);
-          if (categoryItems.length === 0) return null;
-
-          return (
-            <div key={category.id} className={styles.categorySection}>
-              <h3 className={styles.categoryHeader}>{category.name}</h3>
-              
-              {categoryItems.map(item => (
-                <div key={item.id} className={styles.itemRowContainer}>
-                  <div className={styles.itemHeaderLine}>
-                    <span className={styles.itemName}>{item.name}</span>
-                    <span className={styles.dottedDivider}></span>
-                    <span className={styles.itemPrice}>€{Number(item.price).toFixed(2)}</span>
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    {item.description && (
-                      <p className={styles.itemDescription}>{item.description}</p>
-                    )}
-                    <div className={styles.itemFooterAction}>
-                      <button
-                        onClick={() => onAddToCart(item)}
-                        className={styles.addButton}
-                      >
-                        Aggiungi
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* Grid of Menu Cards */}
+      <div className={styles.menuGrid}>
+        {filteredItems.map(item => (
+          <div key={item.id} className={styles.menuCard}>
+            <div>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardTitle}>{item.name}</span>
+                <span className={styles.cardPrice}>€{Number(item.price).toFixed(2)}</span>
+              </div>
+              {item.description && (
+                <p className={styles.cardDescription}>{item.description}</p>
+              )}
             </div>
-          );
-        })}
+            
+            <div className={styles.cardFooter}>
+              <span className={styles.cardCode}>Cod: #{item.id}</span>
+              <button
+                onClick={() => onAddToCart(item)}
+                className={styles.addButton}
+              >
+                ➕ Aggiungi
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
