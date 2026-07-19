@@ -94,37 +94,86 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
         ))}
       </div>
 
-      {/* Grid of Menu Cards */}
-      <div className={styles.menuGrid}>
-        {filteredItems.map(item => (
-          <div key={item.id} className={styles.menuCard}>
-            <div>
-              {item.image_path && (
-                <div className={styles.cardImageContainer}>
-                  <img src={item.image_path} alt={item.name} className={styles.cardImage} />
+      {/* Menu Content Area */}
+      {selectedCategory === 'tutti' ? (
+        <div className={styles.allCategoriesWrapper}>
+          {CATEGORIES.filter(cat => cat.id !== 'tutti').map(category => {
+            const itemsForCategory = menuItems.filter(item => item.category === category.id);
+            if (itemsForCategory.length === 0) return null;
+
+            return (
+              <div key={category.id} className={styles.categorySection}>
+                <h3 className={styles.categorySectionTitle}>
+                  <span>{category.name}</span>
+                  <span className={styles.swipeHint}>Scorri orizzontalmente ↔</span>
+                </h3>
+                <div className={styles.horizontalScrollRow}>
+                  {itemsForCategory.map(item => (
+                    <div key={item.id} className={styles.menuCard}>
+                      <div>
+                        {item.image_path && (
+                          <div className={styles.cardImageContainer}>
+                            <img src={item.image_path} alt={item.name} className={styles.cardImage} />
+                          </div>
+                        )}
+                        <div className={styles.cardHeader}>
+                          <span className={styles.cardTitle}>{item.name}</span>
+                          <span className={styles.cardPrice}>€{Number(item.price).toFixed(2)}</span>
+                        </div>
+                        {item.description && (
+                          <p className={styles.cardDescription}>{item.description}</p>
+                        )}
+                      </div>
+                      
+                      <div className={styles.cardFooter}>
+                        <span className={styles.cardCode}>Cod: #{item.id}</span>
+                        <button
+                          onClick={() => onAddToCart(item)}
+                          className={styles.addButton}
+                        >
+                          ➕ Aggiungi
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>{item.name}</span>
-                <span className={styles.cardPrice}>€{Number(item.price).toFixed(2)}</span>
               </div>
-              {item.description && (
-                <p className={styles.cardDescription}>{item.description}</p>
-              )}
+            );
+          })}
+        </div>
+      ) : (
+        /* Specific Category Grid View */
+        <div className={styles.menuGrid}>
+          {filteredItems.map(item => (
+            <div key={item.id} className={styles.menuCard}>
+              <div>
+                {item.image_path && (
+                  <div className={styles.cardImageContainer}>
+                    <img src={item.image_path} alt={item.name} className={styles.cardImage} />
+                  </div>
+                )}
+                <div className={styles.cardHeader}>
+                  <span className={styles.cardTitle}>{item.name}</span>
+                  <span className={styles.cardPrice}>€{Number(item.price).toFixed(2)}</span>
+                </div>
+                {item.description && (
+                  <p className={styles.cardDescription}>{item.description}</p>
+                )}
+              </div>
+              
+              <div className={styles.cardFooter}>
+                <span className={styles.cardCode}>Cod: #{item.id}</span>
+                <button
+                  onClick={() => onAddToCart(item)}
+                  className={styles.addButton}
+                >
+                  ➕ Aggiungi
+                </button>
+              </div>
             </div>
-            
-            <div className={styles.cardFooter}>
-              <span className={styles.cardCode}>Cod: #{item.id}</span>
-              <button
-                onClick={() => onAddToCart(item)}
-                className={styles.addButton}
-              >
-                ➕ Aggiungi
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

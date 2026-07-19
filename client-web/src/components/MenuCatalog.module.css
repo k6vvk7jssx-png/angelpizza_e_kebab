@@ -176,3 +176,75 @@
   transform: translate(1px, 1px) scale(0.98);
   box-shadow: 1px 1px 0px #1c1917;
 }
+
+/* Horizontal Scroll Row Layout */
+.allCategoriesWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+.categorySection {
+  width: 100%;
+  overflow: hidden;
+}
+
+.categorySectionTitle {
+  font-family: var(--font-montserrat), sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  border-bottom: 3px solid #1c1917;
+  padding-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #1c1917;
+}
+
+.swipeHint {
+  font-size: 0.75rem;
+  text-transform: none;
+  font-weight: 600;
+  color: #ea580c; /* primary orange accent */
+  background-color: #ffedd5;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid #fed7aa; /* soft visual indicator */
+}
+
+.horizontalScrollRow {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.horizontalScrollRow::-webkit-scrollbar {
+  height: 8px;
+}
+
+.horizontalScrollRow::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.horizontalScrollRow::-webkit-scrollbar-thumb {
+  background: #ea580c;
+  border-radius: 4px;
+}
+
+.horizontalScrollRow::-webkit-scrollbar-thumb:hover {
+  background: #c2410c;
+}
+
+/* Force fixed width on cards inside scroll row */
+.horizontalScrollRow .menuCard {
+  width: 285px;
+  flex-shrink: 0;
+}

@@ -343,6 +343,8 @@
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 6px 6px 0px rgba(0,0,0,0.05);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .columnHeader {
