@@ -1,0 +1,25 @@
+# Next.js dependencies and builds
+client-web/node_modules/
+client-web/.next/
+client-web/out/
+client-web/build/
+
+# Local env files
+client-web/.env.local
+client-web/.env.development.local
+client-web/.env.test.local
+client-web/.env.production.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Visual Companion and tool cache
+.superpowers/
+.puro/
+flutter_sdk/
+
+# Operating System files
+.DS_Store
+Thumbs.db
