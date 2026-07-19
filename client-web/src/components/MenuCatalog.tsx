@@ -20,11 +20,16 @@ interface MenuCatalogProps {
 
 const CATEGORIES = [
   { id: 'tutti', name: 'Tutto' },
-  { id: 'pizze', name: 'Pizze' },
+  { id: 'pizze_rosse', name: 'Pizze Rosse' },
+  { id: 'pizze_bianche', name: 'Pizze Bianche' },
+  { id: 'schiacciatine', name: 'Schiacciatine' },
   { id: 'fastfood', name: 'Fast Food' },
   { id: 'specialita', name: 'Specialità' },
   { id: 'delizie', name: 'Sfiziosità' },
-  { id: 'bevande', name: 'Bibite' },
+  { id: 'riso_naan', name: 'Riso e Naan' },
+  { id: 'girarrosto', name: 'Girarrosto' },
+  { id: 'bibite', name: 'Bibite' },
+  { id: 'cocktails', name: 'Cocktails' },
 ];
 
 export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {

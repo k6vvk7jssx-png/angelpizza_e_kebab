@@ -46,22 +46,24 @@
   font-size: 0.9rem;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
   box-shadow: 2px 2px 0px #1c1917;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .categoryButton:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0px #1c1917;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 4px 4px 0px #1c1917;
   background-color: #facc15;
+  border-color: #ea580c;
 }
 
 .activeCategoryButton {
   background-color: #facc15;
-  transform: translate(1px, 1px);
+  transform: translate(1px, 1px) scale(1);
   box-shadow: 1px 1px 0px #1c1917;
+  border-color: #ea580c;
 }
 
 /* Menu Layout */
@@ -150,7 +152,7 @@
   font-size: 0.85rem;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 2px 2px 0px #1c1917;
   text-transform: uppercase;
 }
@@ -158,11 +160,12 @@
 .addButton:hover {
   background-color: #facc15;
   color: #1c1917;
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0px #1c1917;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 4px 4px 0px #ea580c;
+  border-color: #ea580c;
 }
 
 .addButton:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px #1c1917;
+  transform: scale(0.95);
+  box-shadow: 0px 0px 0px #ea580c;
 }

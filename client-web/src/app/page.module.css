@@ -83,6 +83,18 @@
   height: fit-content;
   position: sticky;
   top: 110px;
+  animation: slideInFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .cartTitle {
@@ -188,6 +200,18 @@
   border: 2px solid #1c1917;
   padding: 2rem;
   box-shadow: 5px 5px 0px #1c1917;
+  animation: slideUpFade 0.3s ease-out forwards;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .formTitle {
@@ -338,21 +362,37 @@
   margin: 2rem 0;
   text-transform: uppercase;
   box-shadow: 3px 3px 0px #1c1917;
+  transition: all 0.3s ease;
+}
+
+@keyframes pulseWarning {
+  0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(234, 88, 12, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); }
+}
+
+@keyframes pulseProcessing {
+  0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(250, 204, 21, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
 }
 
 .status-pending {
   background-color: #ef4444;
   color: #ffffff;
+  animation: pulseWarning 2s infinite;
 }
 
 .status-accepted {
   background-color: #facc15;
   color: #1c1917;
+  animation: pulseProcessing 2s infinite;
 }
 
 .status-delivering {
   background-color: #3b82f6;
   color: #ffffff;
+  animation: pulseProcessing 2s infinite;
 }
 
 .status-completed {

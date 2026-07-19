@@ -7,7 +7,7 @@ jest.mock('../src/lib/supabaseClient', () => {
   const mockEq = jest.fn().mockResolvedValue({
     data: [
       { id: '1', name: 'ANGEL', description: 'Hamburger, edamer, bacon', price: 8.0, category: 'fastfood', is_available: true },
-      { id: '2', name: 'Patatine Fritte', description: 'Rustiche con buccia', price: 3.5, category: 'pizze', is_available: true },
+      { id: '2', name: 'Patatine Fritte', description: 'Rustiche con buccia', price: 3.5, category: 'pizze_rosse', is_available: true },
     ],
     error: null,
   });
@@ -32,7 +32,7 @@ describe('MenuCatalog Component', () => {
     // Wait for the menu items to fetch and render
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Fast Food' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Pizze' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Pizze Rosse' })).toBeInTheDocument();
     });
 
     // Check specific items
