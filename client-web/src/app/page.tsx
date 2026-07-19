@@ -86,6 +86,13 @@ export default function Home() {
     };
   }, [placedOrderId]);
 
+  // Scroll to top when an order is placed (crucial for mobile layout redirection feedback)
+  useEffect(() => {
+    if (placedOrderId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [placedOrderId]);
+
   // Order submission
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
