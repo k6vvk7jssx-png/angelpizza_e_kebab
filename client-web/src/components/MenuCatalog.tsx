@@ -18,7 +18,14 @@ interface MenuCatalogProps {
   onAddToCart: (item: MenuItem) => void;
 }
 
-const CATEGORIES = ['tutti', 'panini', 'fritti', 'bevande', 'dolci'];
+const CATEGORIES = [
+  { id: 'tutti', name: 'Tutto' },
+  { id: 'pizze', name: 'Pizze' },
+  { id: 'fastfood', name: 'Fast Food' },
+  { id: 'specialita', name: 'Specialità' },
+  { id: 'delizie', name: 'Sfiziosità' },
+  { id: 'bevande', name: 'Bibite' },
+];
 
 export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -52,24 +59,22 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
   }, []);
 
   if (loading) {
-    return <div className={styles.loading}>Caricamento del menu...</div>;
+    return <div className={styles.loading}>Caricamento del menu in corso...</div>;
   }
 
   if (error) {
     return <div className={styles.error}>Errore: {error}</div>;
   }
 
-  // Filter items based on selected category
+  // Filter items based on selected category id
   const filteredItems = selectedCategory === 'tutti'
     ? menuItems
     : menuItems.filter(item => item.category === selectedCategory);
 
-  // Group items by category for rendering sections
+  // Group items by category to render individual sections
   const categoriesToRender = selectedCategory === 'tutti'
-    ? CATEGORIES.filter(c => c !== 'tutti')
-    : [selectedCategory];
-
-  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+    ? CATEGORIES.filter(c => c.id !== 'tutti')
+    : CATEGORIES.filter(c => c.id === selectedCategory);
 
   return (
     <div className={styles.container}>
@@ -79,44 +84,47 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
       <div className={styles.categoriesContainer}>
         {CATEGORIES.map(category => (
           <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
+            key={category.id}
+            onClick={() => setSelectedCategory(category.id)}
             className={`${styles.categoryButton} ${
-              selectedCategory === category ? styles.activeCategoryButton : ''
+              selectedCategory === category.id ? styles.activeCategoryButton : ''
             }`}
           >
-            {capitalize(category)}
+            {category.name}
           </button>
         ))}
       </div>
 
-      {/* Grid of items grouped by category */}
-      <div className={styles.menuGrid}>
+      {/* List of items grouped by category with traditional dotted dividers */}
+      <div className={styles.menuList}>
         {categoriesToRender.map(category => {
-          const categoryItems = filteredItems.filter(item => item.category === category);
+          const categoryItems = filteredItems.filter(item => item.category === category.id);
           if (categoryItems.length === 0) return null;
 
           return (
-            <div key={category} className={styles.categorySection}>
-              <h3 className={styles.categoryHeader}>{capitalize(category)}</h3>
+            <div key={category.id} className={styles.categorySection}>
+              <h3 className={styles.categoryHeader}>{category.name}</h3>
+              
               {categoryItems.map(item => (
-                <div key={item.id} className={styles.itemCard}>
-                  <div>
-                    <div className={styles.itemHeader}>
-                      <span className={styles.itemName}>{item.name}</span>
-                      <span className={styles.itemPrice}>€{Number(item.price).toFixed(2)}</span>
-                    </div>
+                <div key={item.id} className={styles.itemRowContainer}>
+                  <div className={styles.itemHeaderLine}>
+                    <span className={styles.itemName}>{item.name}</span>
+                    <span className={styles.dottedDivider}></span>
+                    <span className={styles.itemPrice}>€{Number(item.price).toFixed(2)}</span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     {item.description && (
                       <p className={styles.itemDescription}>{item.description}</p>
                     )}
-                  </div>
-                  <div className={styles.itemFooter}>
-                    <button
-                      onClick={() => onAddToCart(item)}
-                      className={styles.addButton}
-                    >
-                      Aggiungi
-                    </button>
+                    <div className={styles.itemFooterAction}>
+                      <button
+                        onClick={() => onAddToCart(item)}
+                        className={styles.addButton}
+                      >
+                        Aggiungi
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

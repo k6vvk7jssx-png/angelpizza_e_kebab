@@ -6,8 +6,8 @@ import { supabase } from '../src/lib/supabaseClient';
 jest.mock('../src/lib/supabaseClient', () => {
   const mockEq = jest.fn().mockResolvedValue({
     data: [
-      { id: '1', name: 'ANGEL', description: 'Hamburger, edamer, bacon', price: 8.0, category: 'panini', is_available: true },
-      { id: '2', name: 'Patatine Fritte', description: 'Rustiche con buccia', price: 3.5, category: 'fritti', is_available: true },
+      { id: '1', name: 'ANGEL', description: 'Hamburger, edamer, bacon', price: 8.0, category: 'fastfood', is_available: true },
+      { id: '2', name: 'Patatine Fritte', description: 'Rustiche con buccia', price: 3.5, category: 'pizze', is_available: true },
     ],
     error: null,
   });
@@ -31,8 +31,8 @@ describe('MenuCatalog Component', () => {
 
     // Wait for the menu items to fetch and render
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Panini' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Fritti' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Fast Food' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Pizze' })).toBeInTheDocument();
     });
 
     // Check specific items
@@ -54,8 +54,8 @@ describe('MenuCatalog Component', () => {
     const addButtons = screen.getAllByRole('button', { name: /aggiungi/i });
     expect(addButtons.length).toBeGreaterThan(0);
 
-    // Click the first add button
-    fireEvent.click(addButtons[0]);
+    // Click the second add button (index 1) which corresponds to the fastfood item 'ANGEL'
+    fireEvent.click(addButtons[1]);
 
     expect(handleAddToCart).toHaveBeenCalledWith(
       expect.objectContaining({
