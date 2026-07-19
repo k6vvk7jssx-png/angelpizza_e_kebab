@@ -1,0 +1,167 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font-family: 'Outfit', sans-serif;
+  color: #1c1917;
+}
+
+.title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 900;
+  font-size: 2.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: #ea580c;
+  margin-bottom: 2rem;
+}
+
+.loading, .error {
+  text-align: center;
+  font-size: 1.2rem;
+  padding: 3rem;
+  color: #ea580c;
+}
+
+/* Category Filter Tabs */
+.categoriesContainer {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+}
+
+.categoryButton {
+  background-color: #ffffff;
+  color: #1c1917;
+  border: 2px solid #1c1917;
+  padding: 0.6rem 1.2rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 2px 2px 0px #1c1917;
+  text-transform: capitalize;
+}
+
+.categoryButton:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #1c1917;
+  background-color: #facc15;
+}
+
+.activeCategoryButton {
+  background-color: #facc15;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #1c1917;
+}
+
+/* Menu Grid */
+.menuGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .menuGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.categorySection {
+  margin-bottom: 3rem;
+}
+
+.categoryHeader {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 1.75rem;
+  color: #1c1917;
+  border-bottom: 3px solid #facc15;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Item List Layout (Classic Italian Menu Dotted Divider style) */
+.itemCard {
+  background-color: #ffffff;
+  border: 1.5px solid #1c1917;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 3px 3px 0px #1c1917;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.itemCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px #1c1917;
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.itemName {
+  font-weight: 850;
+  font-size: 1.2rem;
+  color: #1c1917;
+  text-transform: uppercase;
+}
+
+.itemPrice {
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: #ea580c;
+  white-space: nowrap;
+}
+
+.itemDescription {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin-bottom: 1.25rem;
+  line-height: 1.4;
+}
+
+.itemFooter {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.addButton {
+  background-color: #ea580c;
+  color: #ffffff;
+  border: 1.5px solid #1c1917;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  box-shadow: 2px 2px 0px #1c1917;
+  text-transform: uppercase;
+}
+
+.addButton:hover {
+  background-color: #facc15;
+  color: #1c1917;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #1c1917;
+}
+
+.addButton:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #1c1917;
+}
