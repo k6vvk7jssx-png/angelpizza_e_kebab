@@ -192,7 +192,7 @@ export default function Home() {
   // If order is placed, render tracking panel
   if (placedOrderId) {
     return (
-      <div className={styles.container}>
+      <div className={styles.pageContainer}>
         <header className={styles.header}>
           <div className={styles.headerContainer}>
             <div className={styles.logoContainer}>
@@ -240,7 +240,7 @@ export default function Home() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.pageContainer}>
       {/* Visual Design top indicator bar */}
       <div className={styles.optionBar}>
         <span>Proposta di Design: Home Page Interattiva per Angels Livorno</span>

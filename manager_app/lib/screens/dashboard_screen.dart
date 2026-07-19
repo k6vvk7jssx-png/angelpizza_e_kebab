@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/order_model.dart';
 import '../services/order_service.dart';
 import '../services/notification_manager.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -18,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   OrderModel? _selectedOrder;
   bool _isLoading = true;
   String? _errorMessage;
+  RealtimeChannel? _realtimeChannel;
 
   @override
   void initState() {
@@ -53,7 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Listen to Supabase Postgres changes for real-time notifications
   void _setupRealtimeListener() {
-    _orderService.subscribeToOrders(
+    _realtimeChannel = _orderService.subscribeToOrders(
       onNewOrder: (order) {
         setState(() {
           // Avoid duplicate inserts
@@ -161,6 +164,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.volume_off),
             label: const Text('SILENZIA ALLARME', style: TextStyle(fontWeight: FontWeight.bold)),
             onPressed: () => _notificationManager.stopOrderAlarm(),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: _handleLogout,
+            tooltip: 'Esci / Logout',
           ),
           const SizedBox(width: 16),
         ],
@@ -419,8 +428,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<void> _handleLogout() async {
+    await _notificationManager.stopOrderAlarm();
+    
+    if (_realtimeChannel != null) {
+      await _orderService.unsubscribe(_realtimeChannel!);
+    }
+    
+    await Supabase.instance.client.auth.signOut();
+    
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   void dispose() {
+    if (_realtimeChannel != null) {
+      _orderService.unsubscribe(_realtimeChannel!);
+    }
     _notificationManager.dispose();
     super.dispose();
   }

@@ -10,7 +10,7 @@ export interface MenuItem {
   description: string;
   price: number;
   category: string;
-  image_url?: string;
+  image_path?: string;
   is_available: boolean;
 }
 
@@ -78,7 +78,7 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
     : menuItems.filter(item => item.category === selectedCategory);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.menuContainer}>
       {/* Category Navigation Tabs */}
       <div className={styles.categoriesContainer}>
         {CATEGORIES.map(category => (
@@ -99,6 +99,11 @@ export default function MenuCatalog({ onAddToCart }: MenuCatalogProps) {
         {filteredItems.map(item => (
           <div key={item.id} className={styles.menuCard}>
             <div>
+              {item.image_path && (
+                <div className={styles.cardImageContainer}>
+                  <img src={item.image_path} alt={item.name} className={styles.cardImage} />
+                </div>
+              )}
               <div className={styles.cardHeader}>
                 <span className={styles.cardTitle}>{item.name}</span>
                 <span className={styles.cardPrice}>€{Number(item.price).toFixed(2)}</span>

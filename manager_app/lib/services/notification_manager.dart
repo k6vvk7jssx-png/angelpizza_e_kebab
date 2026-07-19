@@ -1,4 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'package:local_notifier/local_notifier.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -7,7 +9,6 @@ class NotificationManager {
   bool _isAlarmPlaying = false;
 
   NotificationManager() {
-    // Set audio source configuration if needed
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
   }
 
@@ -41,39 +42,49 @@ class NotificationManager {
     required double totalPrice,
     required String deliveryType,
   }) async {
-    // 1. Show OS Native Notification
-    final LocalNotification notification = LocalNotification(
-      identifier: orderId,
-      title: "Nuovo Ordine Ricevuto!",
-      body: "Cliente: $guestName - Totale: €${totalPrice.toStringAsFixed(2)} ($deliveryType)",
-      silent: true, // We handle the audio manually with loop player
-    );
+    if (kIsWeb) {
+      print('Web notification: Nuovo ordine da $guestName (€${totalPrice.toStringAsFixed(2)})');
+      return;
+    }
 
-    notification.onShow = () {
-      print('Notification shown for order: $orderId');
-    };
+    try {
+      // 1. Show OS Native Notification
+      final LocalNotification notification = LocalNotification(
+        identifier: orderId,
+        title: "Nuovo Ordine Ricevuto!",
+        body: "Cliente: $guestName - Totale: €${totalPrice.toStringAsFixed(2)} ($deliveryType)",
+        silent: true, // We handle the audio manually with loop player
+      );
 
-    notification.onClick = () {
-      print('Notification clicked, bringing app to front');
-      bringWindowToFront();
-    };
+      notification.onShow = () {
+        print('Notification shown for order: $orderId');
+      };
 
-    await notification.show();
+      notification.onClick = () {
+        print('Notification clicked, bringing app to front');
+        bringWindowToFront();
+      };
 
-    // 2. Automatically bring app window to front
-    await bringWindowToFront();
+      await notification.show();
+      await bringWindowToFront();
+    } catch (e) {
+      print('Error triggering notification: $e');
+    }
   }
 
   // Focus and bring app window to front
   Future<void> bringWindowToFront() async {
+    if (kIsWeb) return;
     try {
-      if (await windowManager.isMinimized()) {
-        await windowManager.restore();
+      if (!Platform.isAndroid && !Platform.isIOS) {
+        if (await windowManager.isMinimized()) {
+          await windowManager.restore();
+        }
+        await windowManager.focus();
+        await windowManager.setAlwaysOnTop(true);
+        await Future.delayed(const Duration(milliseconds: 500));
+        await windowManager.setAlwaysOnTop(false);
       }
-      await windowManager.focus();
-      await windowManager.setAlwaysOnTop(true);
-      await Future.delayed(const Duration(milliseconds: 500));
-      await windowManager.setAlwaysOnTop(false);
     } catch (e) {
       print('Error bringing window to front: $e');
     }

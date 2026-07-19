@@ -1,5 +1,5 @@
 /* Reset and Base Layout */
-.container {
+.pageContainer {
   width: 100%;
   font-family: 'Outfit', sans-serif;
   background-color: #fcf9f2; /* --cream-bg */
