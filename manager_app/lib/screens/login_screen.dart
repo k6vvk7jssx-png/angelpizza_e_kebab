@@ -42,7 +42,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // 2. Authorize: Check custom claims / metadata role OR email
       final role = user.userMetadata?['role'];
-      final isAdmin = user.email == 'admin@angels.it' || role == 'admin';
+      final isAdmin = user.email == 'admin@angels.it' || 
+                      user.email == 'eraldolamberto@gmail.com' || 
+                      role == 'admin';
 
       if (!isAdmin) {
         // Sign out unauthorized users immediately

@@ -75,7 +75,9 @@ class AuthGate extends StatelessWidget {
     if (session != null) {
       final user = session.user;
       final role = user.userMetadata?['role'];
-      final isAdmin = user.email == 'admin@angels.it' || role == 'admin';
+      final isAdmin = user.email == 'admin@angels.it' || 
+                      user.email == 'eraldolamberto@gmail.com' || 
+                      role == 'admin';
       
       if (isAdmin) {
         return const DashboardScreen();
