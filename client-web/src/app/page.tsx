@@ -281,27 +281,26 @@ export default function Home() {
         </div>
       </header>
 
-      {/* HERO SECTION STYLED LIKE THE MOCKUP INAUGURATION */}
+      {/* HERO SECTION */}
       <section className={styles.hero}>
         <div className={styles.heroContainer}>
           <div>
-            <div className={styles.heroBadge}>Inaugurazione</div>
-            <h1 className={styles.heroTitle}>Grande<br />Inaugurazione</h1>
-            <span className={styles.heroScript}>Sabato 18 Luglio dalle 17:00 alle 22:00</span>
+            <div className={styles.heroBadge}>Ordina Ora</div>
+            <h1 className={styles.heroTitle}>Angels<br />Livorno</h1>
             <p className={styles.heroText}>
-              Vieni ad assaggiare la nostra <strong>Pizza Gratis</strong> in Piazza Mazzini 82/83 a Livorno! Oppure ordina subito online con consegna a domicilio.
+              Gusta le migliori pizze cotte nel nostro forno, il vero kebab speziato con ingredienti freschi e sfiziosità fritte calde. Ordina a domicilio o prenota l'asporto in pochi secondi.
             </p>
             <div className={styles.heroButtons}>
-              <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={scrollToMenu}>Ordina Ora</button>
-              <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={scrollToNews}>Novità & Offerte</button>
+              <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={scrollToMenu}>Esplora il Menu</button>
+              <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={scrollToNews}>Notizie & Offerte</button>
             </div>
           </div>
 
           <div className={styles.heroImageArea}>
             <div className={styles.heroPizzaSticker}>
-              <span>Assaggia la</span>
-              <h2>Pizza</h2>
-              <h2>Gratis</h2>
+              <span>Cotto al</span>
+              <h2>Forno</h2>
+              <h2>Caldo</h2>
             </div>
             <div className={styles.restaurantImageMockup}>
               <svg width="100%" height="100%" viewBox="0 0 450 300" style={{ background: '#EA580C', display: 'block' }}>
@@ -329,7 +328,7 @@ export default function Home() {
       <div id="news-marquee" className={styles.newsBanner}>
         <div className={styles.newsTrack}>
           <div className={styles.newsItem}>🔥 CONSEGNA A DOMICILIO ATTIVA: Tel. <span>0586 99 65 24</span></div>
-          <div className={styles.newsItem}>🍕 INAUGURAZIONE SABATO 18 LUGLIO: <span>PIZZA GRATIS</span> PER TUTTI</div>
+          <div className={styles.newsItem}>🍕 PROVA IL NUOVO <span>MENÙ SPECIALE A € 12,00</span> COMPLETO!</div>
           <div className={styles.newsItem}>🍔 PANINO KEBAB A SOLI <span>€ 5,00</span></div>
           <div className={styles.newsItem}>🌟 SCOPRI I NUOVI COCKTAIL DA ASPORTO A <span>€ 5,00 / € 6,00</span></div>
         </div>
