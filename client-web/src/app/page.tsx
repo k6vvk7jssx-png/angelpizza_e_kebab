@@ -22,6 +22,7 @@ export default function Home() {
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [selectedTime, setSelectedTime] = useState('asap');
   const [orderEstimatedTime, setOrderEstimatedTime] = useState<string | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Generate 15-minute time slots starting from now + 30 minutes up to 23:45
   const getTimeSlots = () => {
@@ -208,6 +209,7 @@ export default function Home() {
       setOrderEstimatedTime(orderData.requested_time);
       setCart([]);
       setIsCheckingOut(false);
+      setIsCartOpen(false);
       
       // Reset form states
       setGuestName('');
@@ -300,6 +302,250 @@ export default function Home() {
       </div>
     );
   }
+  const renderCartAndCheckout = () => {
+    return (
+      <div className={styles.sidebarWidget}>
+        <div className={styles.widgetTitle}>
+          <span>🛒 Il Tuo Ordine</span>
+        </div>
+
+        {!isCheckingOut ? (
+          // CART SUMMARY VIEW
+          <div>
+            {cart.length === 0 ? (
+              <p className={styles.cartEmpty}>Il carrello è vuoto. Aggiungi qualche delizia dal menu!</p>
+            ) : (
+              <>
+                <ul className={styles.cartList}>
+                  {cart.map((item) => (
+                    <li key={item.id} className={styles.cartItem}>
+                      <div className={styles.cartItemInfo}>
+                        <span className={styles.cartItemName}>{item.name}</span>
+                        <span className={styles.cartItemQty}>Quantità: {item.quantity}</span>
+                      </div>
+                      <div className={styles.cartItemRight}>
+                        <span className={styles.cartItemPrice}>
+                          €{(item.price * item.quantity).toFixed(2)}
+                        </span>
+                        <button onClick={() => handleDecreaseQty(item.id)} className={styles.qtyBtn}>-</button>
+                        <button onClick={() => handleIncreaseQty(item.id)} className={styles.qtyBtn}>+</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className={styles.cartSummary}>
+                  <div className={styles.cartRow}>
+                    <span>Subtotale</span>
+                    <span>€{cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className={styles.cartRow}>
+                    <span>Consegna a domicilio</span>
+                    <span style={{ color: '#10B981' }}>Gratis</span>
+                  </div>
+                  <div className={`${styles.cartRow} ${styles.cartTotal}`}>
+                    <span>Totale</span>
+                    <span>€{cartTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsCheckingOut(true)}
+                  className={styles.orderButton}
+                >
+                  Procedi all'Ordine
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          // CHECKOUT FORM VIEW
+          <div className={styles.checkoutOverlay}>
+            <h3 className={styles.formTitle}>Completa Ordine</h3>
+            
+            <form onSubmit={handleCheckoutSubmit}>
+              {/* Mode Tabs */}
+              <div style={{ display: 'flex', border: '2px solid #1c1917', borderRadius: '6px', overflow: 'hidden', marginBottom: '1rem' }}>
+                <div
+                  onClick={() => setCheckoutMode('guest')}
+                  className={`${styles.deliveryTab} ${checkoutMode === 'guest' ? styles.deliveryTabActive : ''}`}
+                  style={{ flex: 1, border: 'none', borderRadius: 0, boxShadow: 'none' }}
+                >
+                  Ordine Rapido
+                </div>
+                <div
+                  onClick={() => setCheckoutMode('login')}
+                  className={`${styles.deliveryTab} ${checkoutMode === 'login' ? styles.deliveryTabActive : ''}`}
+                  style={{ flex: 1, border: 'none', borderRadius: 0, boxShadow: 'none' }}
+                >
+                  Accedi / OTP
+                </div>
+              </div>
+
+              {checkoutMode === 'guest' ? (
+                // Guest Fields
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Nome Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      placeholder="Mario Rossi"
+                      className={styles.formInput}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Metodo di Ricezione *</label>
+                    <div className={styles.rowInputs}>
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryType('delivery')}
+                        className={`${styles.deliveryTab} ${deliveryType === 'delivery' ? styles.deliveryTabActive : ''}`}
+                      >
+                        Consegna
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryType('pickup')}
+                        className={`${styles.deliveryTab} ${deliveryType === 'pickup' ? styles.deliveryTabActive : ''}`}
+                      >
+                        Asporto
+                      </button>
+                    </div>
+                  </div>
+
+                  {deliveryType === 'delivery' && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={guestAddress}
+                        onChange={(e) => setGuestAddress(e.target.value)}
+                        placeholder="Piazza Mazzini 10, Livorno"
+                        className={styles.formInput}
+                      />
+                    </div>
+                  )}
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Telefono (per conferma) *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      placeholder="333 1234567"
+                      className={styles.formInput}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Orario Consegna/Ritiro *</label>
+                    <select
+                      value={selectedTime}
+                      onChange={(e) => setSelectedTime(e.target.value)}
+                      className={styles.formInput}
+                    >
+                      <option value="asap">Prima possibile (circa 30-40 min)</option>
+                      {getTimeSlots().map(time => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                // OTP Simulated Auth Fields
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Numero di cellulare *</label>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <input
+                        type="tel"
+                        value={otpPhone}
+                        onChange={(e) => setOtpPhone(e.target.value)}
+                        placeholder="+39 333 1234567"
+                        className={styles.formInput}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendOTP}
+                        className={styles.btnPrimary}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.85rem',
+                          borderRadius: '8px',
+                          border: '2px solid #1c1917',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Invia OTP
+                      </button>
+                    </div>
+                  </div>
+
+                  {otpSent && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Codice OTP Ricevuto *</label>
+                      <input
+                        type="text"
+                        required
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        placeholder="Es: 123456"
+                        className={styles.formInput}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Metodo di Pagamento</label>
+                <div className={styles.paymentMethodContainer}>
+                  <div
+                    onClick={() => setPaymentMethod('cod')}
+                    className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.paymentOptionActive : ''}`}
+                  >
+                    Consegna
+                  </div>
+                  <div className={`${styles.paymentOption} ${styles.paymentOptionDisabled}`}>
+                    Carta Credito
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.formButtons}>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={styles.submitBtn}
+                >
+                  {isSubmitting ? 'Invio...' : `Invia Ordine (€${cartTotal.toFixed(2)})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCheckingOut(false);
+                    setIsCartOpen(false);
+                  }}
+                  className={styles.cancelBtn}
+                >
+                  Indietro
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={styles.pageContainer}>
@@ -333,7 +579,10 @@ export default function Home() {
           </nav>
 
           <button className={styles.cartBadgeContainer} onClick={() => {
-            document.getElementById('cart-sidebar-section')?.scrollIntoView({ behavior: 'smooth' });
+            setIsCartOpen(true);
+            if (window.innerWidth >= 1024) {
+              document.getElementById('cart-sidebar-section')?.scrollIntoView({ behavior: 'smooth' });
+            }
           }}>
             🛒 Carrello
             <span className={styles.cartBadge}>
@@ -409,244 +658,7 @@ export default function Home() {
 
         {/* Right Column: Sidebar (Cart & Notices) */}
         <div id="cart-sidebar-section" className={styles.sidebar}>
-          {/* CART CARD WIDGET */}
-          <div className={styles.sidebarWidget}>
-            <div className={styles.widgetTitle}>
-              <span>🛒 Il Tuo Ordine</span>
-            </div>
-
-            {!isCheckingOut ? (
-              // CART SUMMARY VIEW
-              <div>
-                {cart.length === 0 ? (
-                  <p className={styles.cartEmpty}>Il carrello è vuoto. Aggiungi qualche delizia dal menu!</p>
-                ) : (
-                  <>
-                    <ul className={styles.cartList}>
-                      {cart.map((item) => (
-                        <li key={item.id} className={styles.cartItem}>
-                          <div className={styles.cartItemInfo}>
-                            <span className={styles.cartItemName}>{item.name}</span>
-                            <span className={styles.cartItemQty}>Quantità: {item.quantity}</span>
-                          </div>
-                          <div className={styles.cartItemRight}>
-                            <span className={styles.cartItemPrice}>
-                              €{(item.price * item.quantity).toFixed(2)}
-                            </span>
-                            <button onClick={() => handleDecreaseQty(item.id)} className={styles.qtyBtn}>-</button>
-                            <button onClick={() => handleIncreaseQty(item.id)} className={styles.qtyBtn}>+</button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className={styles.cartSummary}>
-                      <div className={styles.cartRow}>
-                        <span>Subtotale</span>
-                        <span>€{cartTotal.toFixed(2)}</span>
-                      </div>
-                      <div className={styles.cartRow}>
-                        <span>Consegna a domicilio</span>
-                        <span style={{ color: '#10B981' }}>Gratis</span>
-                      </div>
-                      <div className={`${styles.cartRow} ${styles.cartTotal}`}>
-                        <span>Totale</span>
-                        <span>€{cartTotal.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setIsCheckingOut(true)}
-                      className={styles.orderButton}
-                    >
-                      Procedi all'Ordine
-                    </button>
-                  </>
-                )}
-              </div>
-            ) : (
-              // CHECKOUT FORM VIEW
-              <div className={styles.checkoutOverlay}>
-                <h3 className={styles.formTitle}>Completa Ordine</h3>
-                
-                <form onSubmit={handleCheckoutSubmit}>
-                  {/* Mode Tabs */}
-                  <div style={{ display: 'flex', border: '2px solid #1c1917', borderRadius: '6px', overflow: 'hidden', marginBottom: '1rem' }}>
-                    <div
-                      onClick={() => setCheckoutMode('guest')}
-                      className={`${styles.deliveryTab} ${checkoutMode === 'guest' ? styles.deliveryTabActive : ''}`}
-                      style={{ flex: 1, border: 'none', borderRadius: 0, boxShadow: 'none' }}
-                    >
-                      Ordine Rapido
-                    </div>
-                    <div
-                      onClick={() => setCheckoutMode('login')}
-                      className={`${styles.deliveryTab} ${checkoutMode === 'login' ? styles.deliveryTabActive : ''}`}
-                      style={{ flex: 1, border: 'none', borderRadius: 0, boxShadow: 'none' }}
-                    >
-                      Accedi / OTP
-                    </div>
-                  </div>
-
-                  {checkoutMode === 'guest' ? (
-                    // Guest Fields
-                    <>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Nome Completo *</label>
-                        <input
-                          type="text"
-                          required
-                          value={guestName}
-                          onChange={(e) => setGuestName(e.target.value)}
-                          placeholder="Mario Rossi"
-                          className={styles.formInput}
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Metodo di Ricezione *</label>
-                        <div className={styles.rowInputs}>
-                          <button
-                            type="button"
-                            onClick={() => setDeliveryType('delivery')}
-                            className={`${styles.deliveryTab} ${deliveryType === 'delivery' ? styles.deliveryTabActive : ''}`}
-                          >
-                            Consegna
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeliveryType('pickup')}
-                            className={`${styles.deliveryTab} ${deliveryType === 'pickup' ? styles.deliveryTabActive : ''}`}
-                          >
-                            Asporto
-                          </button>
-                        </div>
-                      </div>
-
-                      {deliveryType === 'delivery' && (
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
-                          <input
-                            type="text"
-                            required
-                            value={guestAddress}
-                            onChange={(e) => setGuestAddress(e.target.value)}
-                            placeholder="Piazza Mazzini 10, Livorno"
-                            className={styles.formInput}
-                          />
-                        </div>
-                      )}
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Telefono (per conferma) *</label>
-                        <input
-                          type="tel"
-                          required
-                          value={guestPhone}
-                          onChange={(e) => setGuestPhone(e.target.value)}
-                          placeholder="333 1234567"
-                          className={styles.formInput}
-                        />
-                      </div>
-
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Orario Consegna/Ritiro *</label>
-                        <select
-                          value={selectedTime}
-                          onChange={(e) => setSelectedTime(e.target.value)}
-                          className={styles.formInput}
-                        >
-                          <option value="asap">Prima possibile (circa 30-40 min)</option>
-                          {getTimeSlots().map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  ) : (
-                    // OTP Simulated Auth Fields
-                    <>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Numero di cellulare *</label>
-                        <div style={{ display: 'flex', gap: '5px' }}>
-                          <input
-                            type="tel"
-                            value={otpPhone}
-                            onChange={(e) => setOtpPhone(e.target.value)}
-                            placeholder="+39 333 1234567"
-                            className={styles.formInput}
-                            style={{ flex: 1 }}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleSendOTP}
-                            className={styles.btnPrimary}
-                            style={{
-                              padding: '6px 12px',
-                              fontSize: '0.8rem',
-                              borderRadius: '6px',
-                              border: '2px solid #1c1917',
-                              cursor: 'pointer',
-                              fontWeight: 'bold',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            Invia OTP
-                          </button>
-                        </div>
-                      </div>
-
-                      {otpSent && (
-                        <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Codice OTP Ricevuto *</label>
-                          <input
-                            type="text"
-                            required
-                            value={otpCode}
-                            onChange={(e) => setOtpCode(e.target.value)}
-                            placeholder="Es: 123456"
-                            className={styles.formInput}
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Metodo di Pagamento</label>
-                    <div className={styles.paymentMethodContainer}>
-                      <div
-                        onClick={() => setPaymentMethod('cod')}
-                        className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.paymentOptionActive : ''}`}
-                      >
-                        Consegna
-                      </div>
-                      <div className={`${styles.paymentOption} ${styles.paymentOptionDisabled}`}>
-                        Carta Credito
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.formButtons}>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className={styles.submitBtn}
-                    >
-                      {isSubmitting ? 'Invio...' : `Invia Ordine (€${cartTotal.toFixed(2)})`}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsCheckingOut(false)}
-                      className={styles.cancelBtn}
-                    >
-                      Indietro
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
+          {renderCartAndCheckout()}
 
           {/* UPDATES & NEWS WIDGET */}
           <div className={styles.sidebarWidget}>
@@ -667,6 +679,36 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* MOBILE CART OVERLAY DRAWER */}
+      {isCartOpen && (
+        <div className={styles.mobileCartOverlay}>
+          <div className={styles.mobileCartDrawer}>
+            <div className={styles.drawerHeader}>
+              <span>🛒 Il Tuo Carrello</span>
+              <button onClick={() => setIsCartOpen(false)} className={styles.closeDrawerBtn}>✕ Chiudi</button>
+            </div>
+            <div className={styles.drawerBody}>
+              {renderCartAndCheckout()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING BOTTOM BAR FOR MOBILE */}
+      {cart.length > 0 && (
+        <div className={styles.floatingBottomBar} onClick={() => setIsCartOpen(true)}>
+          <div className={styles.bottomBarLeft}>
+            <span>🛒 Vedi carrello</span>
+            <span style={{ backgroundColor: 'rgba(255,255,255,0.25)', padding: '2px 8px', borderRadius: '99px', fontSize: '0.85rem' }}>
+              {cart.reduce((acc, item) => acc + item.quantity, 0)}
+            </span>
+          </div>
+          <div className={styles.bottomBarRight}>
+            €{cartTotal.toFixed(2)}
+          </div>
+        </div>
+      )}
 
       {/* FOOTER STYLED LIKE THE MOCKUP FOOTER INFO */}
       <footer id="footer-section" className={styles.footer}>
