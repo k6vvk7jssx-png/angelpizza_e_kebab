@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import MenuCatalog, { MenuItem } from '../components/MenuCatalog';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 import { supabase } from '../lib/supabaseClient';
 import styles from './page.module.css';
 
@@ -24,7 +26,9 @@ export default function Home() {
   const [orderEstimatedTime, setOrderEstimatedTime] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Generate 15-minute time slots starting from now + 30 minutes up to 23:45
+  // Google Review URL
+  const googleReviewUrl = 'https://maps.google.com/?q=Angels+Pizzeria+Kebab+Piazza+Mazzini+Livorno';
+
   const getTimeSlots = () => {
     const slots = [];
     const now = new Date();
@@ -129,7 +133,6 @@ export default function Home() {
     };
   }, [placedOrderId]);
 
-  // Scroll to top when an order is placed
   useEffect(() => {
     if (placedOrderId) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -251,39 +254,11 @@ export default function Home() {
     alert(`[Supabase Auth] Codice OTP inviato a ${otpPhone}. Digita un codice qualsiasi per procedere.`);
   };
 
-  const scrollToMenu = () => {
-    document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const scrollToNews = () => {
-    document.getElementById('news-marquee')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const scrollToFooter = () => {
-    document.getElementById('footer-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   // If order is placed, render tracking panel
   if (placedOrderId) {
     return (
       <div className={styles.pageContainer}>
-        <header className={styles.header}>
-          <div className={styles.headerContainer}>
-            <div className={styles.logoContainer}>
-              <svg className={styles.logoWings} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <path d="M 15 50 C 5 40, 5 25, 25 35 C 30 25, 10 15, 35 25 C 40 15, 20 5, 45 20 C 48 30, 48 45, 45 50" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-                <path d="M 85 50 C 95 40, 95 25, 75 35 C 70 25, 90 15, 65 25 C 60 15, 80 5, 55 20 C 52 30, 52 45, 55 50" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-                <path d="M 38 48 C 30 45, 30 35, 40 35 C 38 28, 62 28, 60 35 C 70 35, 70 45, 62 48 Z" fill="white" stroke="white" strokeWidth="2"/>
-                <rect x="42" y="48" width="16" height="8" rx="2" fill="white"/>
-                <rect x="44" y="52" width="12" height="2" fill="#EA580C"/>
-              </svg>
-              <div className={styles.logoTextWrapper}>
-                <span className={styles.logoText}>Angels</span>
-                <span className={styles.logoSubtext}>Pizzeria & Kebab • Livorno</span>
-              </div>
-            </div>
-          </div>
-        </header>
+        <Header />
 
         <div className={styles.trackerContainer}>
           <div className={styles.trackerHeaderBadge}>🎉 Ordine Ricevuto!</div>
@@ -322,7 +297,6 @@ export default function Home() {
         </div>
 
         {!isCheckingOut ? (
-          // CART SUMMARY VIEW
           <div>
             {cart.length === 0 ? (
               <div className={styles.cartEmptyContainer}>
@@ -377,7 +351,6 @@ export default function Home() {
             )}
           </div>
         ) : (
-          // CHECKOUT FORM VIEW
           <div className={styles.checkoutOverlay}>
             <div className={styles.checkoutHeaderRow}>
               <h3 className={styles.formTitle}>Dettagli Consegna</h3>
@@ -391,7 +364,6 @@ export default function Home() {
             </div>
 
             <form onSubmit={handleCheckoutSubmit}>
-              {/* Mode Tabs */}
               <div className={styles.tabToggleGroup}>
                 <div
                   onClick={() => setCheckoutMode('guest')}
@@ -408,7 +380,6 @@ export default function Home() {
               </div>
 
               {checkoutMode === 'guest' ? (
-                // Guest Fields
                 <>
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Nome Completo *</label>
@@ -434,7 +405,6 @@ export default function Home() {
                     />
                   </div>
 
-                  {/* Delivery / Pickup Toggle */}
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Modalità di Ricezione</label>
                     <div className={styles.tabToggleGroup}>
@@ -467,7 +437,6 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* Preferred Time Selector */}
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Orario desiderato</label>
                     <select
@@ -485,7 +454,6 @@ export default function Home() {
                   </div>
                 </>
               ) : (
-                // OTP Login Fields
                 <>
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Numero di Telefono *</label>
@@ -553,54 +521,26 @@ export default function Home() {
 
   return (
     <div className={styles.pageContainer}>
-      {/* STICKY HEADER */}
-      <header className={styles.header}>
-        <div className={styles.headerContainer}>
-          <div className={styles.logoContainer} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <svg className={styles.logoWings} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <path d="M 15 50 C 5 40, 5 25, 25 35 C 30 25, 10 15, 35 25 C 40 15, 20 5, 45 20 C 48 30, 48 45, 45 50" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-              <path d="M 85 50 C 95 40, 95 25, 75 35 C 70 25, 90 15, 65 25 C 60 15, 80 5, 55 20 C 52 30, 52 45, 55 50" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-              <path d="M 38 48 C 30 45, 30 35, 40 35 C 38 28, 62 28, 60 35 C 70 35, 70 45, 62 48 Z" fill="white" stroke="white" strokeWidth="2"/>
-              <rect x="42" y="48" width="16" height="8" rx="2" fill="white"/>
-              <rect x="44" y="52" width="12" height="2" fill="#EA580C"/>
-            </svg>
-            <div className={styles.logoTextWrapper}>
-              <span className={styles.logoText}>Angels</span>
-              <span className={styles.logoSubtext}>Pizzeria & Kebab • Livorno</span>
-            </div>
-          </div>
+      <Header
+        cartItemCount={cartItemCount}
+        onOpenCart={() => setIsCartOpen(true)}
+      />
 
-          <nav className={styles.nav}>
-            <span onClick={scrollToMenu} className={styles.navLink}>Il Menu</span>
-            <span onClick={scrollToNews} className={styles.navLink}>Notizie</span>
-            <span onClick={scrollToFooter} className={styles.navLink}>Contatti</span>
-          </nav>
-
-          <button
-            className={styles.headerCartBtn}
-            onClick={() => {
-              setIsCartOpen(true);
-              if (window.innerWidth >= 1024) {
-                document.getElementById('cart-sidebar-section')?.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
-          >
-            🛒
-            <span className={styles.headerCartText}>Carrello</span>
-            {cartItemCount > 0 && (
-              <span className={styles.headerCartBadge}>{cartItemCount}</span>
-            )}
-          </button>
-        </div>
-      </header>
-
-      {/* MODERN RESTAURANT HERO BANNER (Glovo / Deliveroo Style) */}
+      {/* MODERN RESTAURANT HERO BANNER */}
       <section className={styles.heroSection}>
         <div className={styles.heroBannerCard}>
           <div className={styles.heroBadgesRow}>
             <span className={styles.heroBadgeHighlight}>⏰ Aperto • 12:00 - 24:00</span>
             <span className={styles.heroBadgeSecondary}>🛵 Consegna Gratuita</span>
-            <span className={styles.heroBadgeSecondary}>⭐ 4.9 (500+ recensioni)</span>
+            {/* DIRECT GOOGLE REVIEW BUTTON */}
+            <a
+              href={googleReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.googleReviewBtn}
+            >
+              ⭐ Valuta su Google
+            </a>
           </div>
 
           <h1 className={styles.heroTitle}>Angels Livorno</h1>
@@ -621,7 +561,9 @@ export default function Home() {
               <span>📞</span>
               <div>
                 <strong>Ordini Telefonici</strong>
-                <a href="tel:0586996524">0586 99 65 24</a>
+                <a href="tel:0586996524" target="_blank" rel="noopener noreferrer">
+                  0586 99 65 24
+                </a>
               </div>
             </div>
 
@@ -662,16 +604,23 @@ export default function Home() {
         <div id="cart-sidebar-section" className={styles.sidebar}>
           {renderCartAndCheckout()}
 
-          {/* UPDATES & NEWS WIDGET */}
-          <div className={styles.sidebarWidget}>
-            <div className={styles.widgetTitle}>
-              <span>📰 Novità & Aggiornamenti</span>
-            </div>
-            <div className={styles.newsWidgetItem}>
-              <div className={styles.newsDate}>Servizio Consegne Attivo</div>
-              <div className={styles.newsTitle}>Ordina dal Sito in Tempo Reale</div>
-              <div className={styles.newsDesc}>Puoi inviare la tua ordinazione dal cellulare ed il pizzaiolo riceverà subito la notifica sul tablet di cucina.</div>
-            </div>
+          {/* GOOGLE REVIEW SIDEBAR CARD */}
+          <div className={styles.sidebarWidget} style={{ textAlign: 'center', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#ffffff' }}>
+            <span style={{ fontSize: '1.8rem', display: 'block', marginBottom: '0.25rem' }}>⭐ ⭐ ⭐ ⭐ ⭐</span>
+            <h3 style={{ fontSize: '1rem', fontWeight: '800', margin: '0 0 0.5rem', color: '#ffffff' }}>
+              Valuta Angels Livorno
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 1rem' }}>
+              Lascia una recensione su Google per farci sapere cosa ne pensi!
+            </p>
+            <a
+              href={googleReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.googleReviewBtn}
+            >
+              ⭐ Scrivi una Recensione →
+            </a>
           </div>
         </div>
       </main>
@@ -699,7 +648,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* FLOATING BOTTOM BAR FOR MOBILE (Glovo / Deliveroo Style Pill) */}
+      {/* FLOATING BOTTOM BAR FOR MOBILE */}
       {cartItemCount > 0 && !isCartOpen && (
         <div className={styles.floatingBottomBar} onClick={() => setIsCartOpen(true)}>
           <div className={styles.bottomBarLeft}>
@@ -713,30 +662,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* FOOTER */}
-      <footer id="footer-section" className={styles.footer}>
-        <div className={styles.footerContainer}>
-          <div className={styles.footerInfo}>
-            <h3>Angels Livorno</h3>
-            <p>Pizzeria Artigianale, Kebab Fast Food & Ristorante Etnico.</p>
-            <p>Ingredienti freschi di prima scelta e cottura al forno a legna.</p>
-          </div>
-          <div className={styles.footerInfo}>
-            <h3>Orari & Consegne</h3>
-            <p>📍 Piazza Mazzini 82/83 - Livorno</p>
-            <p>📞 Telefonaci: <a href="tel:0586996524">0586 99 65 24</a></p>
-            <p>⏰ Aperto tutti i giorni dalle 12:00 alle 24:00</p>
-          </div>
-          <div className={styles.footerInfo}>
-            <h3>Ordina Online</h3>
-            <p>Ordinazioni real-time collegate all'applicazione del gestore.</p>
-            <p>Consegna rapida a domicilio a Livorno e dintorni.</p>
-          </div>
-        </div>
-        <div className={styles.copyright}>
-          © 2026 Angels Livorno. Tutti i diritti riservati.
-        </div>
-      </footer>
+      <Footer googleReviewUrl={googleReviewUrl} />
     </div>
   );
 }

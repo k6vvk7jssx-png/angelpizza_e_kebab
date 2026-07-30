@@ -34,6 +34,7 @@
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .logoWings {
@@ -119,7 +120,7 @@
   justify-content: center;
 }
 
-/* HERO RESTAURANT BANNER CARD (Glovo / Deliveroo Style) */
+/* HERO RESTAURANT BANNER CARD */
 .heroSection {
   width: 100%;
   max-width: 1200px;
@@ -151,7 +152,8 @@
 .heroBadgesRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 1rem;
 }
 
@@ -173,6 +175,27 @@
   padding: 4px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.googleReviewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  color: #0f172a !important;
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 6px 16px;
+  border-radius: 999px;
+  text-decoration: none !important;
+  box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.googleReviewBtn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.45);
 }
 
 .heroTitle {
@@ -854,11 +877,11 @@
 /* RESPONSIVE BREAKPOINTS */
 @media (max-width: 1023px) {
   .sidebar {
-    display: none; /* Hide sidebar on tablet & mobile, use floating cart & drawer */
+    display: none;
   }
 
   .nav {
-    display: none; /* Hide desktop nav links on small screens */
+    display: none;
   }
 }
 
@@ -881,7 +904,7 @@
   }
 
   .headerCartText {
-    display: none; /* Icon only on mobile header */
+    display: none;
   }
 
   .headerCartBtn {
@@ -917,7 +940,6 @@
     margin: 1rem auto;
   }
 
-  /* Bottom sheet style for drawer on mobile */
   .mobileCartOverlay {
     align-items: flex-end;
   }
