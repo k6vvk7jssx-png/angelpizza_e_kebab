@@ -31,31 +31,15 @@ export default function Footer({
         </div>
 
         <div className={styles.footerInfo}>
-          <h3>Orari & Consegne</h3>
-          <p>📍 Piazza Mazzini 82/83 - Livorno</p>
+          <h3>Orari & Contatti</h3>
+          <p>📍 Piazza Mazzini 82/83 - Livorno (LI)</p>
           <p>
-            📞 Telefonaci:{' '}
+            📞 Ordini Telefonici:{' '}
             <a href="tel:0586996524" target="_blank" rel="noopener noreferrer">
               0586 99 65 24
             </a>
           </p>
           <p>⏰ Aperto tutti i giorni dalle 12:00 alle 24:00</p>
-        </div>
-
-        <div className={styles.footerInfo}>
-          <h3>Ordina Online</h3>
-          <p>Ordinazioni real-time collegate all'applicazione del gestore.</p>
-          <p>Consegna rapida a domicilio a Livorno e dintorni.</p>
-          <p>
-            💬 Telegram:{' '}
-            <a
-              href="https://t.me"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Canale Ordini Telegram
-            </a>
-          </p>
         </div>
       </div>
 
