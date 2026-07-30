@@ -14,13 +14,64 @@ interface CartItem extends MenuItem {
 export default function MenuPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [checkoutMode, setCheckoutMode] = useState<'guest' | 'login'>('guest');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
+
+  // Guest checkout details
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestAddress, setGuestAddress] = useState('');
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
   const [selectedTime, setSelectedTime] = useState('asap');
+  const [orderEstimatedTime, setOrderEstimatedTime] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // OTP simulation details
+  const [otpPhone, setOtpPhone] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+
+  // Order state
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string>('pending');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const getTimeSlots = () => {
+    const slots = [];
+    const now = new Date();
+    const startTime = new Date(now.getTime() + 30 * 60 * 1000);
+
+    const minutes = startTime.getMinutes();
+    const roundedMinutes = Math.ceil(minutes / 15) * 15;
+    startTime.setMinutes(roundedMinutes);
+    startTime.setSeconds(0);
+    startTime.setMilliseconds(0);
+
+    const endTime = new Date();
+    endTime.setHours(23);
+    endTime.setMinutes(45);
+
+    let current = new Date(startTime);
+    while (current <= endTime) {
+      const hoursStr = current.getHours().toString().padStart(2, '0');
+      const minStr = current.getMinutes().toString().padStart(2, '0');
+      slots.push(`${hoursStr}:${minStr}`);
+      current.setMinutes(current.getMinutes() + 15);
+    }
+    return slots;
+  };
+
+  const formatEstimatedTime = (timeStr: string | null) => {
+    if (!timeStr) return '30-40 minuti';
+    try {
+      const date = new Date(timeStr);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const mins = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${mins}`;
+    } catch (e) {
+      return '30-40 minuti';
+    }
+  };
 
   const handleAddToCart = (item: MenuItem) => {
     setCart((prev) => {
@@ -51,11 +102,59 @@ export default function MenuPage() {
   const cartTotal = cart.reduce((acc, i) => acc + i.price * i.quantity, 0);
   const cartItemCount = cart.reduce((acc, i) => acc + i.quantity, 0);
 
+  // Real-time tracking subscription
+  useEffect(() => {
+    if (!placedOrderId) return;
+
+    const channel = supabase
+      .channel(`order-tracker-menu-${placedOrderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', filter: `id=eq.${placedOrderId}`, schema: 'public', table: 'orders' },
+        (payload) => {
+          if (payload.new) {
+            if (payload.new.status) setOrderStatus(payload.new.status);
+            if (payload.new.requested_time) setOrderEstimatedTime(payload.new.requested_time);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [placedOrderId]);
+
+  useEffect(() => {
+    if (placedOrderId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [placedOrderId]);
+
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guestName || !guestPhone) {
-      alert('Inserisci Nome e Telefono!');
-      return;
+
+    let customerName = guestName;
+    let customerPhone = guestPhone;
+    let deliveryAddress = deliveryType === 'delivery' ? guestAddress : 'Asporto / Ritiro in cassa';
+
+    if (checkoutMode === 'login') {
+      if (!otpPhone || !otpCode) {
+        alert('Inserisci il numero di telefono e il codice OTP per procedere!');
+        return;
+      }
+      customerName = 'Cliente Autenticato';
+      customerPhone = otpPhone;
+      deliveryAddress = 'Profilo Salvato / Asporto';
+    } else {
+      if (!guestName || !guestPhone) {
+        alert('Compila il Nome e il Telefono prima di inviare!');
+        return;
+      }
+      if (deliveryType === 'delivery' && !guestAddress) {
+        alert('Inserisci l\'indirizzo di consegna per procedere!');
+        return;
+      }
     }
 
     try {
@@ -63,12 +162,18 @@ export default function MenuPage() {
       let requestedTimeIso = new Date();
       if (selectedTime === 'asap') {
         requestedTimeIso = new Date(requestedTimeIso.getTime() + 30 * 60 * 1000);
+      } else {
+        const [hours, minutes] = selectedTime.split(':').map(Number);
+        requestedTimeIso.setHours(hours);
+        requestedTimeIso.setMinutes(minutes);
+        requestedTimeIso.setSeconds(0);
+        requestedTimeIso.setMilliseconds(0);
       }
 
       const orderPayload = {
-        guest_name: guestName,
-        guest_phone: guestPhone,
-        delivery_address: deliveryType === 'delivery' ? guestAddress : 'Asporto',
+        guest_name: customerName,
+        guest_phone: customerPhone,
+        delivery_address: deliveryAddress,
         items: cart.map((i) => ({
           menu_item_id: i.id,
           name: i.name,
@@ -76,7 +181,7 @@ export default function MenuPage() {
           price_at_order: i.price,
         })),
         total_amount: cartTotal,
-        payment_method: 'cod',
+        payment_method: paymentMethod,
         payment_status: 'pending',
         status: 'pending',
         requested_time: requestedTimeIso.toISOString(),
@@ -95,24 +200,307 @@ export default function MenuPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           order_id: orderData.id,
-          guest_name: guestName,
-          guest_phone: guestPhone,
-          delivery_address: deliveryType === 'delivery' ? guestAddress : 'Asporto',
+          guest_name: customerName,
+          guest_phone: customerPhone,
+          delivery_address: deliveryAddress,
           items: cart.map((i) => ({ name: i.name, qty: i.quantity, price_at_order: i.price })),
           total_amount: cartTotal,
           requested_time: requestedTimeIso.toISOString(),
         }),
       }).catch(console.error);
 
-      alert('Ordine inviato con successo! Il ristorante ha preso in carico la richiesta.');
+      setPlacedOrderId(orderData.id);
+      setOrderStatus(orderData.status);
+      setOrderEstimatedTime(orderData.requested_time);
       setCart([]);
       setIsCheckingOut(false);
       setIsCartOpen(false);
+
+      setGuestName('');
+      setGuestPhone('');
+      setGuestAddress('');
+      setOtpPhone('');
+      setOtpSent(false);
+      setOtpCode('');
     } catch (err: any) {
-      alert(`Errore: ${err.message || err}`);
+      alert(`Errore nell'invio dell'ordine: ${err.message || err}`);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSendOTP = () => {
+    if (!otpPhone) {
+      alert('Inserisci un numero di cellulare valido.');
+      return;
+    }
+    setOtpSent(true);
+    alert(`[Supabase Auth] Codice OTP inviato a ${otpPhone}. Digita un codice qualsiasi per procedere.`);
+  };
+
+  // If order is placed, render tracking panel
+  if (placedOrderId) {
+    return (
+      <div className={styles.pageContainer}>
+        <Header />
+
+        <div className={styles.trackerContainer}>
+          <div className={styles.trackerHeaderBadge}>🎉 Ordine Ricevuto!</div>
+          <h2 className={styles.trackerTitle}>Grazie per il tuo ordine</h2>
+          <p className={styles.trackerSubtitle}>Il ristorante ha preso in carico la tua ordinazione ed è in fase di preparazione.</p>
+
+          <div className={`${styles.trackerStatus} ${styles[`status-${orderStatus}`]}`}>
+            {orderStatus === 'pending' && '⏳ In Attesa di Conferma dal Ristorante'}
+            {orderStatus === 'accepted' && '🧑‍🍳 In Preparazione nel Forno'}
+            {orderStatus === 'delivering' && '🛵 In Consegna (Fattorino partito)'}
+            {orderStatus === 'completed' && '✅ Consegnato! Buon Appetito!'}
+            {orderStatus === 'cancelled' && '❌ Annullato dal Locale'}
+          </div>
+
+          <div className={styles.trackerInfoBox}>
+            <span>⏰ Orario stimato:</span>
+            <strong>{formatEstimatedTime(orderEstimatedTime)}</strong>
+          </div>
+
+          <button
+            onClick={() => setPlacedOrderId(null)}
+            className={styles.newOrderBtn}
+          >
+            Fai un nuovo ordine
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const renderCartAndCheckout = () => {
+    return (
+      <div className={styles.sidebarWidget}>
+        <div className={styles.widgetTitle}>
+          <span>🛒 Il Tuo Carrello ({cartItemCount})</span>
+        </div>
+
+        {!isCheckingOut ? (
+          <div>
+            {cart.length === 0 ? (
+              <div className={styles.cartEmptyContainer}>
+                <span className={styles.cartEmptyIcon}>🍕</span>
+                <p className={styles.cartEmpty}>Il carrello è vuoto.<br />Scegli le pizze e le sfiziosità dal menu!</p>
+              </div>
+            ) : (
+              <>
+                <ul className={styles.cartList}>
+                  {cart.map((item) => (
+                    <li key={item.id} className={styles.cartItem}>
+                      <div className={styles.cartItemInfo}>
+                        <span className={styles.cartItemName}>{item.name}</span>
+                        <span className={styles.cartItemUnitPrice}>€{item.price.toFixed(2)} cad.</span>
+                      </div>
+                      <div className={styles.cartItemRight}>
+                        <div className={styles.cartQtyControls}>
+                          <button onClick={() => handleDecreaseQty(item.id)} className={styles.qtyBtn}>−</button>
+                          <span className={styles.cartQtyNum}>{item.quantity}</span>
+                          <button onClick={() => handleIncreaseQty(item.id)} className={styles.qtyBtn}>+</button>
+                        </div>
+                        <span className={styles.cartItemSubtotal}>
+                          €{(item.price * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className={styles.cartSummary}>
+                  <div className={styles.cartRow}>
+                    <span>Subtotale</span>
+                    <span>€{cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className={styles.cartRow}>
+                    <span>Consegna a domicilio</span>
+                    <span className={styles.freeDeliveryBadge}>GRATIS</span>
+                  </div>
+                  <div className={`${styles.cartRow} ${styles.cartTotal}`}>
+                    <span>Totale da Pagare</span>
+                    <span>€{cartTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsCheckingOut(true)}
+                  className={styles.orderButton}
+                >
+                  Procedi all'Ordine (€{cartTotal.toFixed(2)}) →
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className={styles.checkoutOverlay}>
+            <div className={styles.checkoutHeaderRow}>
+              <h3 className={styles.formTitle}>Dettagli Consegna</h3>
+              <button
+                type="button"
+                onClick={() => setIsCheckingOut(false)}
+                className={styles.backToCartLink}
+              >
+                ← Torna al carrello
+              </button>
+            </div>
+
+            <form onSubmit={handleCheckoutSubmit}>
+              <div className={styles.tabToggleGroup}>
+                <div
+                  onClick={() => setCheckoutMode('guest')}
+                  className={`${styles.deliveryTab} ${checkoutMode === 'guest' ? styles.deliveryTabActive : ''}`}
+                >
+                  ⚡ Ordine Rapido
+                </div>
+                <div
+                  onClick={() => setCheckoutMode('login')}
+                  className={`${styles.deliveryTab} ${checkoutMode === 'login' ? styles.deliveryTabActive : ''}`}
+                >
+                  📲 Accedi / OTP
+                </div>
+              </div>
+
+              {checkoutMode === 'guest' ? (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Nome Completo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      placeholder="Es. Mario Rossi"
+                      className={styles.formInput}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Telefono (per la consegna) *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      placeholder="Es. 333 1234567"
+                      className={styles.formInput}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Modalità di Ricezione</label>
+                    <div className={styles.tabToggleGroup}>
+                      <div
+                        onClick={() => setDeliveryType('delivery')}
+                        className={`${styles.deliveryTab} ${deliveryType === 'delivery' ? styles.deliveryTabActive : ''}`}
+                      >
+                        🛵 Domicilio
+                      </div>
+                      <div
+                        onClick={() => setDeliveryType('pickup')}
+                        className={`${styles.deliveryTab} ${deliveryType === 'pickup' ? styles.deliveryTabActive : ''}`}
+                      >
+                        🛍️ Asporto
+                      </div>
+                    </div>
+                  </div>
+
+                  {deliveryType === 'delivery' && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
+                      <input
+                        type="text"
+                        required
+                        value={guestAddress}
+                        onChange={(e) => setGuestAddress(e.target.value)}
+                        placeholder="Es. Via Grande 45, Piano 2"
+                        className={styles.formInput}
+                      />
+                    </div>
+                  )}
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Orario desiderato</label>
+                    <select
+                      value={selectedTime}
+                      onChange={(e) => setSelectedTime(e.target.value)}
+                      className={styles.formSelect}
+                    >
+                      <option value="asap">⚡ Prima possibile (~30-40 min)</option>
+                      {getTimeSlots().map((slot) => (
+                        <option key={slot} value={slot}>
+                          🕒 {slot}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Numero di Telefono *</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="tel"
+                        value={otpPhone}
+                        onChange={(e) => setOtpPhone(e.target.value)}
+                        placeholder="Es. 333 1234567"
+                        className={styles.formInput}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendOTP}
+                        className={styles.otpBtn}
+                      >
+                        Invia SMS
+                      </button>
+                    </div>
+                  </div>
+
+                  {otpSent && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Codice OTP Ricevuto *</label>
+                      <input
+                        type="text"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        placeholder="Es. 123456"
+                        className={styles.formInput}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Metodo di Pagamento</label>
+                <div className={styles.paymentMethodContainer}>
+                  <div
+                    onClick={() => setPaymentMethod('cod')}
+                    className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.paymentOptionActive : ''}`}
+                  >
+                    💵 Contanti alla Consegna
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.formButtons}>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={styles.submitBtn}
+                >
+                  {isSubmitting ? 'Invio in corso...' : `Conferma Ordine (€${cartTotal.toFixed(2)})`}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -139,6 +527,11 @@ export default function MenuPage() {
             onIncreaseQty={handleIncreaseQty}
             onDecreaseQty={handleDecreaseQty}
           />
+        </div>
+
+        {/* Sidebar on Desktop */}
+        <div id="cart-sidebar-section" className={styles.sidebar}>
+          {renderCartAndCheckout()}
         </div>
       </main>
 
@@ -170,75 +563,7 @@ export default function MenuPage() {
               </button>
             </div>
             <div className={styles.drawerBody}>
-              {!isCheckingOut ? (
-                <div>
-                  <ul className={styles.cartList}>
-                    {cart.map((item) => (
-                      <li key={item.id} className={styles.cartItem}>
-                        <div>
-                          <div className={styles.cartItemName}>{item.name}</div>
-                          <div className={styles.cartItemUnitPrice}>€{item.price.toFixed(2)}</div>
-                        </div>
-                        <div className={styles.cartItemRight}>
-                          <div className={styles.cartQtyControls}>
-                            <button onClick={() => handleDecreaseQty(item.id)} className={styles.qtyBtn}>−</button>
-                            <span className={styles.cartQtyNum}>{item.quantity}</span>
-                            <button onClick={() => handleIncreaseQty(item.id)} className={styles.qtyBtn}>+</button>
-                          </div>
-                          <span className={styles.cartItemSubtotal}>€{(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className={styles.cartSummary}>
-                    <div className={styles.cartTotal}>
-                      <span>Totale</span>
-                      <span>€{cartTotal.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <button onClick={() => setIsCheckingOut(true)} className={styles.orderButton}>
-                    Procedi all'Ordine →
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleCheckoutSubmit}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Nome Completo *</label>
-                    <input
-                      type="text"
-                      required
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="Mario Rossi"
-                      className={styles.formInput}
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Telefono *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="333 1234567"
-                      className={styles.formInput}
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Indirizzo di Consegna</label>
-                    <input
-                      type="text"
-                      value={guestAddress}
-                      onChange={(e) => setGuestAddress(e.target.value)}
-                      placeholder="Via Grande 45, Livorno"
-                      className={styles.formInput}
-                    />
-                  </div>
-                  <button type="submit" disabled={isSubmitting} className={styles.submitBtn}>
-                    {isSubmitting ? 'Invio...' : `Conferma (€${cartTotal.toFixed(2)})`}
-                  </button>
-                </form>
-              )}
+              {renderCartAndCheckout()}
             </div>
           </div>
         </div>
