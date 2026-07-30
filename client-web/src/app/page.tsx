@@ -202,6 +202,25 @@ export default function Home() {
 
       if (orderError) throw orderError;
 
+      // Send instant Telegram Notification
+      fetch('/api/telegram-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderData.id,
+          guest_name: customerName,
+          guest_phone: customerPhone,
+          delivery_address: deliveryAddress,
+          items: cart.map((item) => ({
+            name: item.name,
+            qty: item.quantity,
+            price_at_order: item.price,
+          })),
+          total_amount: cartTotal,
+          requested_time: requestedTimeIso.toISOString(),
+        }),
+      }).catch((err) => console.error('Telegram notification error:', err));
+
       setPlacedOrderId(orderData.id);
       setOrderStatus(orderData.status);
       setOrderEstimatedTime(orderData.requested_time);
