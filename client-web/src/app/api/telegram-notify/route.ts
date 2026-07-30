@@ -46,18 +46,20 @@ export async function POST(request: Request) {
           .join('\n')
       : 'Nessun dettaglio articoli';
 
+    const shortId = order_id ? String(order_id).slice(0, 8).toUpperCase() : 'NEW';
+
     const messageText =
       `🚨 *NUOVO ORDINE RICEVUTO!* 🚨\n\n` +
-      `🆔 *ID Ordine:* \`#${
-        order_id ? String(order_id).slice(0, 8).toUpperCase() : 'NEW'
-      }\`\n` +
+      `🆔 *ID Ordine:* \`#${shortId}\`\n` +
       `👤 *Cliente:* ${guest_name}\n` +
       `📞 *Telefono:* ${guest_phone}\n` +
       `📍 *Indirizzo/Tipo:* ${delivery_address}\n` +
       `⏰ *Orario Richiesto:* ${formattedTime}\n\n` +
       `🛒 *PIATTI ORDINATI:*\n${itemsText}\n\n` +
-      `💰 *TOTALE DA PAGARE:* *€ ${Number(total_amount).toFixed(2)}*`;
+      `💰 *TOTALE DA PAGARE:* *€ ${Number(total_amount).toFixed(2)}*\n\n` +
+      `🟢 *STATO:* *DISPONIBILE PER LA CONSEGNA*`;
 
+    // Send Telegram message with interactive Inline Claim Button
     const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
     const response = await fetch(telegramUrl, {
       method: 'POST',
@@ -66,6 +68,16 @@ export async function POST(request: Request) {
         chat_id: chatId,
         text: messageText,
         parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '🛵 PRENDI IN CARICO (PRENOTA CONSEGNA)',
+                callback_data: `claim:${order_id}:${shortId}`,
+              },
+            ],
+          ],
+        },
       }),
     });
 
