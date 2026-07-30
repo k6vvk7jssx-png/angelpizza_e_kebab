@@ -14,7 +14,7 @@ export default function Home() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState<'guest' | 'login'>('guest');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'stripe'>('cod');
-  
+
   // Guest checkout details
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -29,8 +29,7 @@ export default function Home() {
     const slots = [];
     const now = new Date();
     const startTime = new Date(now.getTime() + 30 * 60 * 1000);
-    
-    // Round to next 15 minutes
+
     const minutes = startTime.getMinutes();
     const roundedMinutes = Math.ceil(minutes / 15) * 15;
     startTime.setMinutes(roundedMinutes);
@@ -52,17 +51,17 @@ export default function Home() {
   };
 
   const formatEstimatedTime = (timeStr: string | null) => {
-    if (!timeStr) return "30-40 minuti";
+    if (!timeStr) return '30-40 minuti';
     try {
       const date = new Date(timeStr);
       const hours = date.getHours().toString().padStart(2, '0');
       const mins = date.getMinutes().toString().padStart(2, '0');
       return `${hours}:${mins}`;
     } catch (e) {
-      return "30-40 minuti";
+      return '30-40 minuti';
     }
   };
-  
+
   // OTP simulation details
   const [otpPhone, setOtpPhone] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -105,6 +104,7 @@ export default function Home() {
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   // Real-time tracking subscription
   useEffect(() => {
@@ -129,7 +129,7 @@ export default function Home() {
     };
   }, [placedOrderId]);
 
-  // Scroll to top when an order is placed (crucial for mobile layout redirection feedback)
+  // Scroll to top when an order is placed
   useEffect(() => {
     if (placedOrderId) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -142,14 +142,14 @@ export default function Home() {
 
     let customerName = guestName;
     let customerPhone = guestPhone;
-    let deliveryAddress = deliveryType === 'delivery' ? guestAddress : 'Asporto / Ritiro';
+    let deliveryAddress = deliveryType === 'delivery' ? guestAddress : 'Asporto / Ritiro in cassa';
 
     if (checkoutMode === 'login') {
       if (!otpPhone || !otpCode) {
-        alert('Inserisci il numero di telefono e il codice OTP ricevuto per procedere!');
+        alert('Inserisci il numero di telefono e il codice OTP per procedere!');
         return;
       }
-      customerName = 'Utente OTP';
+      customerName = 'Cliente Autenticato';
       customerPhone = otpPhone;
       deliveryAddress = 'Profilo Salvato / Asporto';
     } else {
@@ -166,10 +166,9 @@ export default function Home() {
     try {
       setIsSubmitting(true);
 
-      // Calculate requested_time ISO string
       let requestedTimeIso = new Date();
       if (selectedTime === 'asap') {
-        requestedTimeIso = new Date(requestedTimeIso.getTime() + 30 * 60 * 1000); // default +30 minutes
+        requestedTimeIso = new Date(requestedTimeIso.getTime() + 30 * 60 * 1000);
       } else {
         const [hours, minutes] = selectedTime.split(':').map(Number);
         requestedTimeIso.setHours(hours);
@@ -182,11 +181,11 @@ export default function Home() {
         guest_name: customerName,
         guest_phone: customerPhone,
         delivery_address: deliveryAddress,
-        items: cart.map(item => ({
+        items: cart.map((item) => ({
           menu_item_id: item.id,
           name: item.name,
           qty: item.quantity,
-          price_at_order: item.price
+          price_at_order: item.price,
         })),
         total_amount: cartTotal,
         payment_method: paymentMethod,
@@ -203,15 +202,13 @@ export default function Home() {
 
       if (orderError) throw orderError;
 
-      // Success
       setPlacedOrderId(orderData.id);
       setOrderStatus(orderData.status);
       setOrderEstimatedTime(orderData.requested_time);
       setCart([]);
       setIsCheckingOut(false);
       setIsCartOpen(false);
-      
-      // Reset form states
+
       setGuestName('');
       setGuestPhone('');
       setGuestAddress('');
@@ -232,7 +229,7 @@ export default function Home() {
       return;
     }
     setOtpSent(true);
-    alert(`[Simulatore Supabase Auth] Codice OTP inviato a ${otpPhone}. Digita un codice qualsiasi per procedere.`);
+    alert(`[Supabase Auth] Codice OTP inviato a ${otpPhone}. Digita un codice qualsiasi per procedere.`);
   };
 
   const scrollToMenu = () => {
@@ -263,38 +260,33 @@ export default function Home() {
               </svg>
               <div className={styles.logoTextWrapper}>
                 <span className={styles.logoText}>Angels</span>
-                <span className={styles.logoSubtext}>Kebab & Fast Food • Pizzeria</span>
+                <span className={styles.logoSubtext}>Pizzeria & Kebab • Livorno</span>
               </div>
             </div>
           </div>
         </header>
 
         <div className={styles.trackerContainer}>
-          <h2 className={styles.trackerTitle}>Ordine Ricevuto!</h2>
-          <p style={{ fontWeight: '600' }}>Il tuo ordine è stato registrato ed è in fase di elaborazione dal gestore.</p>
-          
+          <div className={styles.trackerHeaderBadge}>🎉 Ordine Ricevuto!</div>
+          <h2 className={styles.trackerTitle}>Grazie per il tuo ordine</h2>
+          <p className={styles.trackerSubtitle}>Il ristorante ha preso in carico la tua ordinazione ed è in fase di preparazione.</p>
+
           <div className={`${styles.trackerStatus} ${styles[`status-${orderStatus}`]}`}>
-            {orderStatus === 'pending' && '⏳ In Attesa di Conferma'}
-            {orderStatus === 'accepted' && '🧑‍🍳 In Preparazione'}
+            {orderStatus === 'pending' && '⏳ In Attesa di Conferma dal Ristorante'}
+            {orderStatus === 'accepted' && '🧑‍🍳 In Preparazione nel Forno'}
             {orderStatus === 'delivering' && '🛵 In Consegna (Fattorino partito)'}
             {orderStatus === 'completed' && '✅ Consegnato! Buon Appetito!'}
             {orderStatus === 'cancelled' && '❌ Annullato dal Locale'}
           </div>
 
-          <p className={styles.trackerTime}>
-            {orderStatus === 'completed' 
-              ? 'L\'ordine è stato consegnato!' 
-              : orderStatus === 'cancelled'
-              ? 'L\'ordine è stato annullato.'
-              : `Orario di consegna/ritiro stimato: ${formatEstimatedTime(orderEstimatedTime)}.`}
-            <br />
-            Rimani su questa pagina per tracciare gli aggiornamenti in tempo reale.
-          </p>
+          <div className={styles.trackerInfoBox}>
+            <span>⏰ Orario stimato:</span>
+            <strong>{formatEstimatedTime(orderEstimatedTime)}</strong>
+          </div>
 
           <button
             onClick={() => setPlacedOrderId(null)}
-            className={styles.orderButton}
-            style={{ width: 'auto', padding: '0.8rem 2rem' }}
+            className={styles.newOrderBtn}
           >
             Fai un nuovo ordine
           </button>
@@ -302,18 +294,22 @@ export default function Home() {
       </div>
     );
   }
+
   const renderCartAndCheckout = () => {
     return (
       <div className={styles.sidebarWidget}>
         <div className={styles.widgetTitle}>
-          <span>🛒 Il Tuo Ordine</span>
+          <span>🛒 Il Tuo Carrello ({cartItemCount})</span>
         </div>
 
         {!isCheckingOut ? (
           // CART SUMMARY VIEW
           <div>
             {cart.length === 0 ? (
-              <p className={styles.cartEmpty}>Il carrello è vuoto. Aggiungi qualche delizia dal menu!</p>
+              <div className={styles.cartEmptyContainer}>
+                <span className={styles.cartEmptyIcon}>🍕</span>
+                <p className={styles.cartEmpty}>Il carrello è vuoto.<br />Scegli le pizze e le sfiziosità dal menu!</p>
+              </div>
             ) : (
               <>
                 <ul className={styles.cartList}>
@@ -321,14 +317,17 @@ export default function Home() {
                     <li key={item.id} className={styles.cartItem}>
                       <div className={styles.cartItemInfo}>
                         <span className={styles.cartItemName}>{item.name}</span>
-                        <span className={styles.cartItemQty}>Quantità: {item.quantity}</span>
+                        <span className={styles.cartItemUnitPrice}>€{item.price.toFixed(2)} cad.</span>
                       </div>
                       <div className={styles.cartItemRight}>
-                        <span className={styles.cartItemPrice}>
+                        <div className={styles.cartQtyControls}>
+                          <button onClick={() => handleDecreaseQty(item.id)} className={styles.qtyBtn}>−</button>
+                          <span className={styles.cartQtyNum}>{item.quantity}</span>
+                          <button onClick={() => handleIncreaseQty(item.id)} className={styles.qtyBtn}>+</button>
+                        </div>
+                        <span className={styles.cartItemSubtotal}>
                           €{(item.price * item.quantity).toFixed(2)}
                         </span>
-                        <button onClick={() => handleDecreaseQty(item.id)} className={styles.qtyBtn}>-</button>
-                        <button onClick={() => handleIncreaseQty(item.id)} className={styles.qtyBtn}>+</button>
                       </div>
                     </li>
                   ))}
@@ -341,10 +340,10 @@ export default function Home() {
                   </div>
                   <div className={styles.cartRow}>
                     <span>Consegna a domicilio</span>
-                    <span style={{ color: '#10B981' }}>Gratis</span>
+                    <span className={styles.freeDeliveryBadge}>GRATIS</span>
                   </div>
                   <div className={`${styles.cartRow} ${styles.cartTotal}`}>
-                    <span>Totale</span>
+                    <span>Totale da Pagare</span>
                     <span>€{cartTotal.toFixed(2)}</span>
                   </div>
                 </div>
@@ -353,7 +352,7 @@ export default function Home() {
                   onClick={() => setIsCheckingOut(true)}
                   className={styles.orderButton}
                 >
-                  Procedi all'Ordine
+                  Procedi all'Ordine (€{cartTotal.toFixed(2)}) →
                 </button>
               </>
             )}
@@ -361,24 +360,31 @@ export default function Home() {
         ) : (
           // CHECKOUT FORM VIEW
           <div className={styles.checkoutOverlay}>
-            <h3 className={styles.formTitle}>Completa Ordine</h3>
-            
+            <div className={styles.checkoutHeaderRow}>
+              <h3 className={styles.formTitle}>Dettagli Consegna</h3>
+              <button
+                type="button"
+                onClick={() => setIsCheckingOut(false)}
+                className={styles.backToCartLink}
+              >
+                ← Torna al carrello
+              </button>
+            </div>
+
             <form onSubmit={handleCheckoutSubmit}>
               {/* Mode Tabs */}
-              <div style={{ display: 'flex', border: '2px solid #1c1917', borderRadius: '6px', overflow: 'hidden', marginBottom: '1rem' }}>
+              <div className={styles.tabToggleGroup}>
                 <div
                   onClick={() => setCheckoutMode('guest')}
                   className={`${styles.deliveryTab} ${checkoutMode === 'guest' ? styles.deliveryTabActive : ''}`}
-                  style={{ flex: 1, border: 'none', borderRadius: 0, boxShadow: 'none' }}
                 >
-                  Ordine Rapido
+                  ⚡ Ordine Rapido
                 </div>
                 <div
                   onClick={() => setCheckoutMode('login')}
                   className={`${styles.deliveryTab} ${checkoutMode === 'login' ? styles.deliveryTabActive : ''}`}
-                  style={{ flex: 1, border: 'none', borderRadius: 0, boxShadow: 'none' }}
                 >
-                  Accedi / OTP
+                  📲 Accedi / OTP
                 </div>
               </div>
 
@@ -392,28 +398,39 @@ export default function Home() {
                       required
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="Mario Rossi"
+                      placeholder="Es. Mario Rossi"
                       className={styles.formInput}
                     />
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Metodo di Ricezione *</label>
-                    <div className={styles.rowInputs}>
-                      <button
-                        type="button"
+                    <label className={styles.formLabel}>Telefono (per la consegna) *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      placeholder="Es. 333 1234567"
+                      className={styles.formInput}
+                    />
+                  </div>
+
+                  {/* Delivery / Pickup Toggle */}
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Modalità di Ricezione</label>
+                    <div className={styles.tabToggleGroup}>
+                      <div
                         onClick={() => setDeliveryType('delivery')}
                         className={`${styles.deliveryTab} ${deliveryType === 'delivery' ? styles.deliveryTabActive : ''}`}
                       >
-                        Consegna
-                      </button>
-                      <button
-                        type="button"
+                        🛵 Domicilio
+                      </div>
+                      <div
                         onClick={() => setDeliveryType('pickup')}
                         className={`${styles.deliveryTab} ${deliveryType === 'pickup' ? styles.deliveryTabActive : ''}`}
                       >
-                        Asporto
-                      </button>
+                        🛍️ Asporto
+                      </div>
                     </div>
                   </div>
 
@@ -425,67 +442,49 @@ export default function Home() {
                         required
                         value={guestAddress}
                         onChange={(e) => setGuestAddress(e.target.value)}
-                        placeholder="Piazza Mazzini 10, Livorno"
+                        placeholder="Es. Via Grande 45, Piano 2"
                         className={styles.formInput}
                       />
                     </div>
                   )}
 
+                  {/* Preferred Time Selector */}
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Telefono (per conferma) *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="333 1234567"
-                      className={styles.formInput}
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Orario Consegna/Ritiro *</label>
+                    <label className={styles.formLabel}>Orario desiderato</label>
                     <select
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
-                      className={styles.formInput}
+                      className={styles.formSelect}
                     >
-                      <option value="asap">Prima possibile (circa 30-40 min)</option>
-                      {getTimeSlots().map(time => (
-                        <option key={time} value={time}>{time}</option>
+                      <option value="asap">⚡ Prima possibile (~30-40 min)</option>
+                      {getTimeSlots().map((slot) => (
+                        <option key={slot} value={slot}>
+                          🕒 {slot}
+                        </option>
                       ))}
                     </select>
                   </div>
                 </>
               ) : (
-                // OTP Simulated Auth Fields
+                // OTP Login Fields
                 <>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Numero di cellulare *</label>
-                    <div style={{ display: 'flex', gap: '5px' }}>
+                    <label className={styles.formLabel}>Numero di Telefono *</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       <input
                         type="tel"
                         value={otpPhone}
                         onChange={(e) => setOtpPhone(e.target.value)}
-                        placeholder="+39 333 1234567"
+                        placeholder="Es. 333 1234567"
                         className={styles.formInput}
                         style={{ flex: 1 }}
                       />
                       <button
                         type="button"
                         onClick={handleSendOTP}
-                        className={styles.btnPrimary}
-                        style={{
-                          padding: '6px 12px',
-                          fontSize: '0.85rem',
-                          borderRadius: '8px',
-                          border: '2px solid #1c1917',
-                          cursor: 'pointer',
-                          fontWeight: 'bold',
-                          whiteSpace: 'nowrap'
-                        }}
+                        className={styles.otpBtn}
                       >
-                        Invia OTP
+                        Invia SMS
                       </button>
                     </div>
                   </div>
@@ -495,10 +494,9 @@ export default function Home() {
                       <label className={styles.formLabel}>Codice OTP Ricevuto *</label>
                       <input
                         type="text"
-                        required
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value)}
-                        placeholder="Es: 123456"
+                        placeholder="Es. 123456"
                         className={styles.formInput}
                       />
                     </div>
@@ -513,10 +511,7 @@ export default function Home() {
                     onClick={() => setPaymentMethod('cod')}
                     className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.paymentOptionActive : ''}`}
                   >
-                    Consegna
-                  </div>
-                  <div className={`${styles.paymentOption} ${styles.paymentOptionDisabled}`}>
-                    Carta Credito
+                    💵 Contanti alla Consegna
                   </div>
                 </div>
               </div>
@@ -527,17 +522,7 @@ export default function Home() {
                   disabled={isSubmitting}
                   className={styles.submitBtn}
                 >
-                  {isSubmitting ? 'Invio...' : `Invia Ordine (€${cartTotal.toFixed(2)})`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCheckingOut(false);
-                    setIsCartOpen(false);
-                  }}
-                  className={styles.cancelBtn}
-                >
-                  Indietro
+                  {isSubmitting ? 'Invio in corso...' : `Conferma Ordine (€${cartTotal.toFixed(2)})`}
                 </button>
               </div>
             </form>
@@ -549,16 +534,10 @@ export default function Home() {
 
   return (
     <div className={styles.pageContainer}>
-      {/* Visual Design top indicator bar */}
-      <div className={styles.optionBar}>
-        <span>Proposta di Design: Home Page Interattiva per Angels Livorno</span>
-        <span>Aggiungi le delizie dal menu ed effettua un ordine di prova!</span>
-      </div>
-
       {/* STICKY HEADER */}
       <header className={styles.header}>
         <div className={styles.headerContainer}>
-          <div className={styles.logoContainer}>
+          <div className={styles.logoContainer} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <svg className={styles.logoWings} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
               <path d="M 15 50 C 5 40, 5 25, 25 35 C 30 25, 10 15, 35 25 C 40 15, 20 5, 45 20 C 48 30, 48 45, 45 50" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round"/>
               <path d="M 85 50 C 95 40, 95 25, 75 35 C 70 25, 90 15, 65 25 C 60 15, 80 5, 55 20 C 52 30, 52 45, 55 50" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round"/>
@@ -568,68 +547,71 @@ export default function Home() {
             </svg>
             <div className={styles.logoTextWrapper}>
               <span className={styles.logoText}>Angels</span>
-              <span className={styles.logoSubtext}>Kebab & Fast Food • Pizzeria</span>
+              <span className={styles.logoSubtext}>Pizzeria & Kebab • Livorno</span>
             </div>
           </div>
 
           <nav className={styles.nav}>
             <span onClick={scrollToMenu} className={styles.navLink}>Il Menu</span>
-            <span onClick={scrollToNews} className={styles.navLink}>Notizie & Novità</span>
+            <span onClick={scrollToNews} className={styles.navLink}>Notizie</span>
             <span onClick={scrollToFooter} className={styles.navLink}>Contatti</span>
           </nav>
 
-          <button className={styles.cartBadgeContainer} onClick={() => {
-            setIsCartOpen(true);
-            if (window.innerWidth >= 1024) {
-              document.getElementById('cart-sidebar-section')?.scrollIntoView({ behavior: 'smooth' });
-            }
-          }}>
-            🛒 Carrello
-            <span className={styles.cartBadge}>
-              {cart.reduce((acc, item) => acc + item.quantity, 0)}
-            </span>
+          <button
+            className={styles.headerCartBtn}
+            onClick={() => {
+              setIsCartOpen(true);
+              if (window.innerWidth >= 1024) {
+                document.getElementById('cart-sidebar-section')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          >
+            🛒
+            <span className={styles.headerCartText}>Carrello</span>
+            {cartItemCount > 0 && (
+              <span className={styles.headerCartBadge}>{cartItemCount}</span>
+            )}
           </button>
         </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className={styles.hero}>
-        <div className={styles.heroContainer}>
-          <div>
-            <div className={styles.heroBadge}>Ordina Ora</div>
-            <h1 className={styles.heroTitle}>Angels<br />Livorno</h1>
-            <p className={styles.heroText}>
-              Gusta le migliori pizze cotte nel nostro forno, il vero kebab speziato con ingredienti freschi e sfiziosità fritte calde. Ordina a domicilio o prenota l'asporto in pochi secondi.
-            </p>
-            <div className={styles.heroButtons}>
-              <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={scrollToMenu}>Esplora il Menu</button>
-              <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={scrollToNews}>Notizie & Offerte</button>
-            </div>
+      {/* MODERN RESTAURANT HERO BANNER (Glovo / Deliveroo Style) */}
+      <section className={styles.heroSection}>
+        <div className={styles.heroBannerCard}>
+          <div className={styles.heroBadgesRow}>
+            <span className={styles.heroBadgeHighlight}>⏰ Aperto • 12:00 - 24:00</span>
+            <span className={styles.heroBadgeSecondary}>🛵 Consegna Gratuita</span>
+            <span className={styles.heroBadgeSecondary}>⭐ 4.9 (500+ recensioni)</span>
           </div>
 
-          <div className={styles.heroImageArea}>
-            <div className={styles.heroPizzaSticker}>
-              <span>Cotto al</span>
-              <h2>Forno</h2>
-              <h2>Caldo</h2>
+          <h1 className={styles.heroTitle}>Angels Livorno</h1>
+          <p className={styles.heroSubtitle}>
+            Pizzeria Artigianale, Kebab Speziato & Sfiziosità Fritte. Ordina online a domicilio o per asporto in pochi tap!
+          </p>
+
+          <div className={styles.heroInfoGrid}>
+            <div className={styles.heroInfoItem}>
+              <span>📍</span>
+              <div>
+                <strong>Piazza Mazzini 82/83</strong>
+                <small>Livorno (LI)</small>
+              </div>
             </div>
-            <div className={styles.restaurantImageMockup}>
-              <svg width="100%" height="100%" viewBox="0 0 450 300" style={{ background: '#EA580C', display: 'block' }}>
-                <circle cx="225" cy="150" r="120" fill="#FACC15" />
-                <path d="M225 150 L150 70 A120 120 0 0 1 300 70 Z" fill="#EF4444" stroke="#1C1917" strokeWidth="6" />
-                <circle cx="225" cy="100" r="8" fill="#FACC15" />
-                <circle cx="200" cy="110" r="8" fill="#FACC15" />
-                <circle cx="250" cy="110" r="8" fill="#FACC15" />
-                <circle cx="225" cy="80" r="4" fill="#10B981" />
-                <circle cx="205" cy="90" r="4" fill="#10B981" />
-                <circle cx="245" cy="90" r="4" fill="#10B981" />
-                <rect x="260" y="160" width="100" height="40" rx="20" transform="rotate(-30 260 160)" fill="#F5F5F4" stroke="#1C1917" strokeWidth="4" />
-                <path d="M 330 110 L 360 90 L 340 125 Z" fill="#10B981" />
-                <path d="M 320 115 L 340 100 L 335 125 Z" fill="#EF4444" />
-                <text x="225" y="275" fontFamily="'Montserrat', sans-serif" fontWeight="900" fontSize="22" fill="#1C1917" textAnchor="middle">
-                  PIZZA, KEBAB & SFIZIOSITÀ
-                </text>
-              </svg>
+
+            <div className={styles.heroInfoItem}>
+              <span>📞</span>
+              <div>
+                <strong>Ordini Telefonici</strong>
+                <a href="tel:0586996524">0586 99 65 24</a>
+              </div>
+            </div>
+
+            <div className={styles.heroInfoItem}>
+              <span>⚡</span>
+              <div>
+                <strong>Tempo Medio</strong>
+                <small>30 - 40 Minuti</small>
+              </div>
             </div>
           </div>
         </div>
@@ -638,10 +620,10 @@ export default function Home() {
       {/* MOVING NEWS MARQUEE */}
       <div id="news-marquee" className={styles.newsBanner}>
         <div className={styles.newsTrack}>
-          <div className={styles.newsItem}>🔥 CONSEGNA A DOMICILIO ATTIVA: Tel. <span>0586 99 65 24</span></div>
-          <div className={styles.newsItem}>🍕 PROVA IL NUOVO <span>MENÙ SPECIALE A € 12,00</span> COMPLETO!</div>
+          <div className={styles.newsItem}>🔥 CONSEGNA A DOMICILIO GRATUITA • Tel. <span>0586 99 65 24</span></div>
+          <div className={styles.newsItem}>🍕 PROVA IL <span>MENÙ SPECIALE A € 12,00</span> COMPLETO!</div>
           <div className={styles.newsItem}>🍔 PANINO KEBAB A SOLI <span>€ 5,00</span></div>
-          <div className={styles.newsItem}>🌟 SCOPRI I NUOVI COCKTAIL DA ASPORTO A <span>€ 5,00 / € 6,00</span></div>
+          <div className={styles.newsItem}>🍹 COCKTAILS DA ASPORTO A <span>€ 5,00 / € 6,00</span></div>
         </div>
       </div>
 
@@ -649,11 +631,12 @@ export default function Home() {
       <main className={styles.mainLayout}>
         {/* Left Column: Menu Catalog */}
         <div id="menu-section" className={styles.menuColumn}>
-          <div className={styles.columnHeader}>
-            <span>📖 Il Nostro Menu</span>
-            <span className={styles.columnHeaderSubtext}>Clicca per aggiungere al carrello</span>
-          </div>
-          <MenuCatalog onAddToCart={handleAddToCart} />
+          <MenuCatalog
+            onAddToCart={handleAddToCart}
+            cart={cart}
+            onIncreaseQty={handleIncreaseQty}
+            onDecreaseQty={handleDecreaseQty}
+          />
         </div>
 
         {/* Right Column: Sidebar (Cart & Notices) */}
@@ -666,15 +649,9 @@ export default function Home() {
               <span>📰 Novità & Aggiornamenti</span>
             </div>
             <div className={styles.newsWidgetItem}>
-              <div className={styles.newsDate}>17 Luglio 2026</div>
-              <div className={styles.newsTitle}>Servizio Online Attivo</div>
-              <div className={styles.newsDesc}>Da oggi puoi ordinare sul sito ed il gestore riceverà la notifica istantanea sull'app proprietaria.</div>
-            </div>
-            <hr style={{ margin: '12px 0', border: '0', borderTop: '1px dotted #cccccc' }} />
-            <div className={styles.newsWidgetItem}>
-              <div className={styles.newsDate}>16 Luglio 2026</div>
-              <div className={styles.newsTitle}>Nuove Pizze in Menu</div>
-              <div className={styles.newsDesc}>Aggiunte le pizze speciali del volantino: Boscaiola, Capricciosa, Tartufata Special, Mortadella e Pistacchio!</div>
+              <div className={styles.newsDate}>Servizio Consegne Attivo</div>
+              <div className={styles.newsTitle}>Ordina dal Sito in Tempo Reale</div>
+              <div className={styles.newsDesc}>Puoi inviare la tua ordinazione dal cellulare ed il pizzaiolo riceverà subito la notifica sul tablet di cucina.</div>
             </div>
           </div>
         </div>
@@ -682,11 +659,19 @@ export default function Home() {
 
       {/* MOBILE CART OVERLAY DRAWER */}
       {isCartOpen && (
-        <div className={styles.mobileCartOverlay}>
-          <div className={styles.mobileCartDrawer}>
+        <div className={styles.mobileCartOverlay} onClick={() => setIsCartOpen(false)}>
+          <div
+            className={styles.mobileCartDrawer}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className={styles.drawerHeader}>
-              <span>🛒 Il Tuo Carrello</span>
-              <button onClick={() => setIsCartOpen(false)} className={styles.closeDrawerBtn}>✕ Chiudi</button>
+              <div className={styles.drawerHeaderTitle}>
+                <span>🛒 Il Tuo Ordine</span>
+                <span className={styles.drawerHeaderBadge}>{cartItemCount} articoli</span>
+              </div>
+              <button onClick={() => setIsCartOpen(false)} className={styles.closeDrawerBtn}>
+                ✕
+              </button>
             </div>
             <div className={styles.drawerBody}>
               {renderCartAndCheckout()}
@@ -695,39 +680,38 @@ export default function Home() {
         </div>
       )}
 
-      {/* FLOATING BOTTOM BAR FOR MOBILE */}
-      {cart.length > 0 && (
+      {/* FLOATING BOTTOM BAR FOR MOBILE (Glovo / Deliveroo Style Pill) */}
+      {cartItemCount > 0 && !isCartOpen && (
         <div className={styles.floatingBottomBar} onClick={() => setIsCartOpen(true)}>
           <div className={styles.bottomBarLeft}>
-            <span>🛒 Vedi carrello</span>
-            <span style={{ backgroundColor: 'rgba(255,255,255,0.25)', padding: '2px 8px', borderRadius: '99px', fontSize: '0.85rem' }}>
-              {cart.reduce((acc, item) => acc + item.quantity, 0)}
-            </span>
+            <span className={styles.bottomBarBadge}>{cartItemCount}</span>
+            <span className={styles.bottomBarText}>Vedi Ordine</span>
           </div>
           <div className={styles.bottomBarRight}>
-            €{cartTotal.toFixed(2)}
+            <span>€{cartTotal.toFixed(2)}</span>
+            <span className={styles.bottomBarArrow}>→</span>
           </div>
         </div>
       )}
 
-      {/* FOOTER STYLED LIKE THE MOCKUP FOOTER INFO */}
+      {/* FOOTER */}
       <footer id="footer-section" className={styles.footer}>
         <div className={styles.footerContainer}>
           <div className={styles.footerInfo}>
             <h3>Angels Livorno</h3>
-            <p>Kebab, Fast Food, Ristorante Etnico & Pizzeria.</p>
-            <p>Il gusto unico della vera pizza e della carne speziata di prima scelta.</p>
+            <p>Pizzeria Artigianale, Kebab Fast Food & Ristorante Etnico.</p>
+            <p>Ingredienti freschi di prima scelta e cottura al forno a legna.</p>
           </div>
           <div className={styles.footerInfo}>
             <h3>Orari & Consegne</h3>
             <p>📍 Piazza Mazzini 82/83 - Livorno</p>
-            <p>📞 Telefono: <a href="tel:0586996524">0586 99 65 24</a></p>
+            <p>📞 Telefonaci: <a href="tel:0586996524">0586 99 65 24</a></p>
             <p>⏰ Aperto tutti i giorni dalle 12:00 alle 24:00</p>
           </div>
           <div className={styles.footerInfo}>
-            <h3>Tecnologia</h3>
-            <p>Sviluppato con <strong>tecnologie cloud moderne</strong> & <strong>Supabase</strong>.</p>
+            <h3>Ordina Online</h3>
             <p>Ordinazioni real-time collegate all'applicazione del gestore.</p>
+            <p>Consegna rapida a domicilio a Livorno e dintorni.</p>
           </div>
         </div>
         <div className={styles.copyright}>
