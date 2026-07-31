@@ -13,7 +13,7 @@ class OrderService {
         .from('orders')
         .select()
         .order('created_at', ascending: false);
-    
+
     final List<dynamic> data = response as List<dynamic>;
     return data.map((json) => OrderModel.fromJson(json as Map<String, dynamic>)).toList();
   }
@@ -26,6 +26,17 @@ class OrderService {
         .eq('id', orderId);
   }
 
+  // Update assigned driver of a specific order and set status to delivering
+  Future<void> updateOrderDriver(String orderId, String driverName) async {
+    await _client
+        .from('orders')
+        .update({
+          'notes': 'Fattorino: ${driverName.toUpperCase()}',
+          'status': 'delivering',
+        })
+        .eq('id', orderId);
+  }
+
   // Update requested time of a specific order
   Future<void> updateOrderTime(String orderId, DateTime newTime) async {
     await _client
@@ -34,13 +45,13 @@ class OrderService {
         .eq('id', orderId);
   }
 
-  // Subscribe to real-time insertions on the orders table
+  // Subscribe to real-time insertions and updates on the orders table
   RealtimeChannel subscribeToOrders({
     required void Function(OrderModel order) onNewOrder,
     required void Function(String id, String status) onOrderUpdated,
   }) {
     final channel = _client.channel('public:orders');
-    
+
     channel.onPostgresChanges(
       event: PostgresChangeEvent.insert,
       schema: 'public',

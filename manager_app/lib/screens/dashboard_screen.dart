@@ -8,6 +8,7 @@ import 'login_screen.dart';
 
 enum DashboardTab {
   kitchen, // active daily orders
+  drivers, // riders & delivery assignment tracking
   archive, // historic list of days
   balance, // performance chart & metrics
 }
@@ -35,6 +36,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Archive view selections
   String? _selectedArchiveDay;
   OrderModel? _selectedArchiveOrder;
+
+  // Custom added driver roster list
+  final List<String> _customDrivers = ['Marco', 'Luca', 'Giovanni', 'Giuseppe', 'Andrea'];
 
   @override
   void initState() {
@@ -105,31 +109,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       },
       onOrderUpdated: (id, status) {
-        setState(() {
-          final index = _orders.indexWhere((o) => o.id == id);
-          if (index != -1) {
-            final updatedOrder = OrderModel(
-              id: _orders[index].id,
-              guestName: _orders[index].guestName,
-              guestPhone: _orders[index].guestPhone,
-              guestAddress: _orders[index].guestAddress,
-              deliveryType: _orders[index].deliveryType,
-              status: status,
-              requestedTime: _orders[index].requestedTime,
-              totalPrice: _orders[index].totalPrice,
-              notes: _orders[index].notes,
-              createdAt: _orders[index].createdAt,
-              items: _orders[index].items,
-            );
-            _orders[index] = updatedOrder;
-            if (_selectedOrder?.id == id) {
-              _selectedOrder = updatedOrder;
-            }
-            if (_selectedArchiveOrder?.id == id) {
-              _selectedArchiveOrder = updatedOrder;
-            }
-          }
-        });
+        // Reload all orders to sync status & notes driver assignment
+        _loadInitialData();
       },
     );
   }
@@ -195,37 +176,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return grouped;
   }
 
+  // Extract all unique driver names from Telegram claims & custom list
+  List<String> getExtractedDrivers() {
+    final Set<String> drivers = {};
+    for (final driver in _customDrivers) {
+      drivers.add(driver.toUpperCase());
+    }
+
+    for (final order in _orders) {
+      if (order.notes != null && order.notes!.isNotEmpty) {
+        final note = order.notes!;
+        if (note.contains('Fattorino:')) {
+          final name = note.replaceAll('Fattorino:', '').trim().toUpperCase();
+          if (name.isNotEmpty) {
+            drivers.add(name);
+          }
+        }
+      }
+    }
+    return drivers.toList()..sort();
+  }
+
+  // Helper to extract clean driver name from order notes
+  String? _getDriverFromOrder(OrderModel order) {
+    if (order.notes != null && order.notes!.isNotEmpty) {
+      final note = order.notes!;
+      if (note.contains('Fattorino:')) {
+        return note.replaceAll('Fattorino:', '').trim().toUpperCase();
+      }
+      return note.toUpperCase();
+    }
+    return null;
+  }
+
+  Future<void> _assignDriverToOrder(OrderModel order, String driverName) async {
+    try {
+      await _orderService.updateOrderDriver(order.id, driverName);
+      await _loadInitialData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ordine assegnato a $driverName 🛵'),
+          backgroundColor: Colors.green.shade800,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore durante l\'assegnazione: $e')),
+      );
+    }
+  }
+
   Future<void> _updateStatus(String status) async {
     final targetOrder = _currentTab == DashboardTab.kitchen ? _selectedOrder : _selectedArchiveOrder;
     if (targetOrder == null) return;
     try {
       await _orderService.updateOrderStatus(targetOrder.id, status);
-
-      setState(() {
-        final index = _orders.indexWhere((o) => o.id == targetOrder.id);
-        if (index != -1) {
-          final updatedOrder = OrderModel(
-            id: _orders[index].id,
-            guestName: _orders[index].guestName,
-            guestPhone: _orders[index].guestPhone,
-            guestAddress: _orders[index].guestAddress,
-            deliveryType: _orders[index].deliveryType,
-            status: status,
-            requestedTime: _orders[index].requestedTime,
-            totalPrice: _orders[index].totalPrice,
-            notes: _orders[index].notes,
-            createdAt: _orders[index].createdAt,
-            items: _orders[index].items,
-          );
-          _orders[index] = updatedOrder;
-          if (_selectedOrder?.id == targetOrder.id) {
-            _selectedOrder = updatedOrder;
-          }
-          if (_selectedArchiveOrder?.id == targetOrder.id) {
-            _selectedArchiveOrder = updatedOrder;
-          }
-        }
-      });
+      await _loadInitialData();
 
       if (status == 'accepted' || status == 'cancelled') {
         await _notificationManager.stopOrderAlarm();
@@ -243,32 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final newTime = targetOrder.requestedTime.add(Duration(minutes: minutesDelta));
       await _orderService.updateOrderTime(targetOrder.id, newTime);
-
-      setState(() {
-        final index = _orders.indexWhere((o) => o.id == targetOrder.id);
-        if (index != -1) {
-          final updatedOrder = OrderModel(
-            id: _orders[index].id,
-            guestName: _orders[index].guestName,
-            guestPhone: _orders[index].guestPhone,
-            guestAddress: _orders[index].guestAddress,
-            deliveryType: _orders[index].deliveryType,
-            status: _orders[index].status,
-            requestedTime: newTime,
-            totalPrice: _orders[index].totalPrice,
-            notes: _orders[index].notes,
-            createdAt: _orders[index].createdAt,
-            items: _orders[index].items,
-          );
-          _orders[index] = updatedOrder;
-          if (_selectedOrder?.id == targetOrder.id) {
-            _selectedOrder = updatedOrder;
-          }
-          if (_selectedArchiveOrder?.id == targetOrder.id) {
-            _selectedArchiveOrder = updatedOrder;
-          }
-        }
-      });
+      await _loadInitialData();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Orario aggiornato a ${_formatTime(newTime)}')),
       );
@@ -277,6 +258,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
         SnackBar(content: Text('Errore durante l\'aggiornamento dell\'orario: $e')),
       );
     }
+  }
+
+  void _showAddDriverDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2E2A27),
+          title: const Text('AGGIUNGI NUOVO FATTORINO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Nome Fattorino (es. Marco)',
+              hintStyle: TextStyle(color: Colors.white38),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFEA580C))),
+              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFFACC15))),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ANNULLA', style: TextStyle(color: Colors.white60)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEA580C)),
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  setState(() {
+                    if (!_customDrivers.contains(name)) {
+                      _customDrivers.add(name);
+                    }
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('SALVA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _formatTime(DateTime dateTime) {
@@ -430,6 +455,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               backgroundColor: const Color(0xFF141211),
               selectedItemColor: const Color(0xFFEA580C),
               unselectedItemColor: Colors.white60,
+              type: BottomNavigationBarType.fixed,
               currentIndex: _currentTab.index,
               onTap: (index) {
                 setState(() {
@@ -457,6 +483,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   label: 'Cucina',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.two_wheeler),
+                  label: 'Fattorini',
                 ),
                 const BottomNavigationBarItem(
                   icon: Icon(Icons.library_books),
@@ -511,6 +541,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icons.kitchen,
             label: '🍳 CUCINA ATTIVA',
             badgeCount: getActiveKitchenOrders().where((o) => o.status == 'pending').length,
+          ),
+          _buildSidebarButton(
+            tab: DashboardTab.drivers,
+            icon: Icons.two_wheeler,
+            label: '🛵 FATTORINI & RIDER',
           ),
           _buildSidebarButton(
             tab: DashboardTab.archive,
@@ -586,6 +621,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     switch (_currentTab) {
       case DashboardTab.kitchen:
         return _buildKitchenView();
+      case DashboardTab.drivers:
+        return _buildDriversView();
       case DashboardTab.archive:
         return _buildArchiveView();
       case DashboardTab.balance:
@@ -597,6 +634,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     switch (_currentTab) {
       case DashboardTab.kitchen:
         return _buildKitchenViewMobile();
+      case DashboardTab.drivers:
+        return _buildDriversViewMobile();
       case DashboardTab.archive:
         return _buildArchiveViewMobile();
       case DashboardTab.balance:
@@ -644,7 +683,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     itemBuilder: (context, index) {
                       final order = activeOrders[index];
                       final isSelected = _selectedOrder?.id == order.id;
-                      final driverInfo = order.notes != null && order.notes!.isNotEmpty ? order.notes! : null;
+                      final driverInfo = _getDriverFromOrder(order);
 
                       return Card(
                         color: isSelected
@@ -745,7 +784,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       itemCount: activeOrders.length,
       itemBuilder: (context, index) {
         final order = activeOrders[index];
-        final driverInfo = order.notes != null && order.notes!.isNotEmpty ? order.notes! : null;
+        final driverInfo = _getDriverFromOrder(order);
 
         return Card(
           color: const Color(0xFF2E2A27),
@@ -835,7 +874,401 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 2: ARCHIVE VIEW DESKTOP
+  // TAB 2: DRIVERS & RIDER MANAGEMENT DESKTOP
+  Widget _buildDriversView() {
+    final drivers = getExtractedDrivers();
+    final activeShiftOrders = getActiveKitchenOrders();
+    final deliveryOrders = activeShiftOrders.where((o) => o.deliveryType == 'delivery').toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(28.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'GESTIONE FATTORINI & ASSEGNAZIONI',
+                    style: TextStyle(color: Color(0xFFFACC15), fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Tracciamento consegne, presa in carico da Telegram e assegnazione diretta.',
+                    style: TextStyle(color: Colors.white60, fontSize: 14),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEA580C),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                ),
+                icon: const Icon(Icons.person_add, color: Colors.white),
+                label: const Text('+ AGGIUNGI FATTORINO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: _showAddDriverDialog,
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
+
+          // Drivers Summary Cards Grid
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'SQUADRA RIDER & STATISTICHE DI OGGI',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 2.2,
+                    ),
+                    itemCount: drivers.length,
+                    itemBuilder: (context, index) {
+                      final driverName = drivers[index];
+                      final driverOrders = deliveryOrders.where((o) => _getDriverFromOrder(o) == driverName).toList();
+                      final completedCount = driverOrders.where((o) => o.status == 'completed').length;
+                      final inProgressCount = driverOrders.where((o) => o.status == 'delivering' || o.status == 'accepted').length;
+                      final totalCash = driverOrders.where((o) => o.status == 'completed').fold(0.0, (double sum, o) => sum + o.totalPrice);
+
+                      return Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2E2A27),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: inProgressCount > 0 ? Colors.cyanAccent : Colors.white10,
+                            width: inProgressCount > 0 ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 26,
+                              backgroundColor: const Color(0xFFEA580C).withOpacity(0.2),
+                              child: const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 28),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    driverName,
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$completedCount consegne • €${totalCash.toStringAsFixed(2)}',
+                                    style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.w600, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    inProgressCount > 0 ? '🛵 In viaggio ($inProgressCount ordini)' : '🟢 Disponibile',
+                                    style: TextStyle(
+                                      color: inProgressCount > 0 ? Colors.cyanAccent : Colors.greenAccent,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Delivery Orders Quick-Assign Section
+                  const Text(
+                    'ORDINI A DOMICILIO - ASSEGNAZIONE RAPIDA',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+
+                  deliveryOrders.isEmpty
+                      ? const Card(
+                          color: Color(0xFF2E2A27),
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Center(
+                              child: Text('Nessun ordine a domicilio attivo nel turno corrente.', style: TextStyle(color: Colors.white60)),
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: deliveryOrders.length,
+                          itemBuilder: (context, index) {
+                            final order = deliveryOrders[index];
+                            final assignedDriver = _getDriverFromOrder(order);
+
+                            return Card(
+                              color: const Color(0xFF2E2A27),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(
+                                  color: assignedDriver != null ? Colors.cyanAccent.withOpacity(0.5) : Colors.white10,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            order.guestName.toUpperCase(),
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '📍 ${order.guestAddress ?? "Indirizzo N/D"} • Tel: ${order.guestPhone}',
+                                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Ora Richiesta: ${_formatTime(order.requestedTime)} | Totale: €${order.totalPrice.toStringAsFixed(2)}',
+                                            style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            assignedDriver != null ? 'FATTORINO: $assignedDriver' : '⚠️ NON ASSEGNATO',
+                                            style: TextStyle(
+                                              color: assignedDriver != null ? Colors.cyanAccent : Colors.amber,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          PopupMenuButton<String>(
+                                            color: const Color(0xFF1C1917),
+                                            onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
+                                            itemBuilder: (context) {
+                                              return drivers.map((d) {
+                                                return PopupMenuItem<String>(
+                                                  value: d,
+                                                  child: Row(
+                                                    children: [
+                                                      const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 18),
+                                                      const SizedBox(width: 10),
+                                                      Text(d, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                    ],
+                                                  ),
+                                                );
+                                              }).toList();
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFEA580C),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.person_pin, color: Colors.white, size: 16),
+                                                  SizedBox(width: 6),
+                                                  Text('ASSEGNA ORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // TAB 2: DRIVERS VIEW MOBILE
+  Widget _buildDriversViewMobile() {
+    final drivers = getExtractedDrivers();
+    final activeShiftOrders = getActiveKitchenOrders();
+    final deliveryOrders = activeShiftOrders.where((o) => o.deliveryType == 'delivery').toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'SQUADRA FATTORINI',
+                style: TextStyle(color: Color(0xFFFACC15), fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.person_add, color: Color(0xFFEA580C)),
+                onPressed: _showAddDriverDialog,
+                tooltip: 'Aggiungi Fattorino',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Drivers Cards List
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: drivers.length,
+            itemBuilder: (context, index) {
+              final driverName = drivers[index];
+              final driverOrders = deliveryOrders.where((o) => _getDriverFromOrder(o) == driverName).toList();
+              final completedCount = driverOrders.where((o) => o.status == 'completed').length;
+              final totalCash = driverOrders.where((o) => o.status == 'completed').fold(0.0, (double sum, o) => sum + o.totalPrice);
+
+              return Card(
+                color: const Color(0xFF2E2A27),
+                margin: const EdgeInsets.only(bottom: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFEA580C),
+                    child: Icon(Icons.two_wheeler, color: Colors.white, size: 20),
+                  ),
+                  title: Text(driverName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  subtitle: Text('$completedCount consegne • Incasso: €${totalCash.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  trailing: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          const Text(
+            'ASSEGNAZIONE CONSEGNE',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+
+          deliveryOrders.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: Text('Nessuna consegna attiva al momento.', style: TextStyle(color: Colors.white54))),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: deliveryOrders.length,
+                  itemBuilder: (context, index) {
+                    final order = deliveryOrders[index];
+                    final assignedDriver = _getDriverFromOrder(order);
+
+                    return Card(
+                      color: const Color(0xFF2E2A27),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    order.guestName.toUpperCase(),
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '€${order.totalPrice.toStringAsFixed(2)}',
+                                  style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text('📍 ${order.guestAddress ?? "N/D"}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                            const SizedBox(height: 8),
+
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  assignedDriver != null ? '🛵 $assignedDriver' : '⚠️ NON ASSEGNATO',
+                                  style: TextStyle(
+                                    color: assignedDriver != null ? Colors.cyanAccent : Colors.amber,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                PopupMenuButton<String>(
+                                  color: const Color(0xFF1C1917),
+                                  onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
+                                  itemBuilder: (context) {
+                                    return drivers.map((d) {
+                                      return PopupMenuItem<String>(
+                                        value: d,
+                                        child: Text(d, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                      );
+                                    }).toList();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEA580C),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text('ASSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ],
+      ),
+    );
+  }
+
+  // TAB 3: ARCHIVE VIEW DESKTOP
   Widget _buildArchiveView() {
     final grouped = getOrdersGroupedByBusinessDay();
     if (grouped.isEmpty) {
@@ -947,7 +1380,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     itemBuilder: (context, index) {
                       final order = ordersForSelectedDay[index];
                       final isSelected = _selectedArchiveOrder?.id == order.id;
-                      final driverInfo = order.notes != null && order.notes!.isNotEmpty ? order.notes! : null;
+                      final driverInfo = _getDriverFromOrder(order);
 
                       return ListTile(
                         selected: isSelected,
@@ -1006,7 +1439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 2: ARCHIVE VIEW MOBILE
+  // TAB 3: ARCHIVE VIEW MOBILE
   Widget _buildArchiveViewMobile() {
     final grouped = getOrdersGroupedByBusinessDay();
     if (grouped.isEmpty) {
@@ -1089,7 +1522,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     itemCount: dayOrders.length,
                     itemBuilder: (context, index) {
                       final order = dayOrders[index];
-                      final driverInfo = order.notes != null && order.notes!.isNotEmpty ? order.notes! : null;
+                      final driverInfo = _getDriverFromOrder(order);
 
                       return ListTile(
                         title: Text(order.guestName.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -1117,7 +1550,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 3: BUSINESS PERFORMANCE VIEW DESKTOP
+  // TAB 4: BUSINESS PERFORMANCE VIEW DESKTOP
   Widget _buildBalanceView() {
     final grouped = getOrdersGroupedByBusinessDay();
     final List<MapEntry<String, double>> dailyRevenue = [];
@@ -1224,7 +1657,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 3: BUSINESS PERFORMANCE VIEW MOBILE
+  // TAB 4: BUSINESS PERFORMANCE VIEW MOBILE
   Widget _buildBalanceViewMobile() {
     final grouped = getOrdersGroupedByBusinessDay();
     final List<MapEntry<String, double>> dailyRevenue = [];
@@ -1517,7 +1950,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildOrderDetailsPane(OrderModel order) {
     final isDelivery = order.deliveryType == 'delivery';
     final shortId = order.id.length > 8 ? order.id.substring(0, 8).toUpperCase() : order.id.toUpperCase();
-    final driverName = order.notes != null && order.notes!.isNotEmpty ? order.notes! : null;
+    final driverName = _getDriverFromOrder(order);
+    final availableDrivers = getExtractedDrivers();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
@@ -1572,22 +2006,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   isDelivery ? 'CONSEGNA A DOMICILIO 🛵' : 'ASPORTO IN CASSA 🛍️',
                   valueColor: isDelivery ? const Color(0xFFFACC15) : Colors.greenAccent,
                 ),
-                if (driverName != null) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.cyan.shade900.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.cyanAccent.withOpacity(0.5)),
-                    ),
-                    child: Text(
-                      '🛵 $driverName',
-                      style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
+
+                // Driver Assignment Selector Row inside Details
+                if (isDelivery) ...[
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '🛵 FATTORINO ASSEGNATO:',
+                    style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: driverName != null ? Colors.cyan.shade900.withOpacity(0.4) : Colors.white12,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: driverName != null ? Colors.cyanAccent.withOpacity(0.5) : Colors.white24,
+                            ),
+                          ),
+                          child: Text(
+                            driverName != null ? '🛵 $driverName' : '⚠️ Nessun fattorino assegnato',
+                            style: TextStyle(
+                              color: driverName != null ? Colors.cyanAccent : Colors.amber,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      PopupMenuButton<String>(
+                        color: const Color(0xFF1C1917),
+                        onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
+                        itemBuilder: (context) {
+                          return availableDrivers.map((d) {
+                            return PopupMenuItem<String>(
+                              value: d,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 18),
+                                  const SizedBox(width: 10),
+                                  Text(d, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEA580C),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('CAMBIA / ASSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
+
                 const SizedBox(height: 12),
                 const Divider(color: Colors.white10),
                 const SizedBox(height: 8),
