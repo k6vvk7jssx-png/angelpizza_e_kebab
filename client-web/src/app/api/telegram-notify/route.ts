@@ -63,9 +63,12 @@ export async function POST(request: Request) {
         .order('created_at', { ascending: false });
 
       if (activeOrders && activeOrders.length > 0) {
-        // Filter for delivery orders with address
+        // Filter for UNBATCHED delivery orders with address
         const candidateDeliveryOrders = activeOrders.filter(
-          (o) => o.delivery_address && o.delivery_address.trim().length > 3
+          (o) =>
+            o.delivery_address &&
+            o.delivery_address.trim().length > 3 &&
+            (!o.notes || (!o.notes.includes('Abbinato') && !o.notes.includes('Batch:')))
         );
 
         if (candidateDeliveryOrders.length > 0) {
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
             const angleDiff = Math.abs(newBearing - candidateBearing);
             const isSameDirection = angleDiff <= 35 || angleDiff >= 325;
 
-            // Trigger batching if within 600m radius OR within 1000m along same direction
+            // Trigger batching ONLY if within 600m radius OR within 1000m along same direction corridor
             if (dist <= 600 || (dist <= 1100 && isSameDirection)) {
               isBatched = true;
               pairedOrder = candidate;
