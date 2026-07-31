@@ -33,6 +33,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Selected tab
   DashboardTab _currentTab = DashboardTab.kitchen;
 
+  // Active Riders Count for Tonight's Shift (Defaults to 2)
+  int _activeRidersCount = 2;
+
   // Archive view selections
   String? _selectedArchiveDay;
   OrderModel? _selectedArchiveOrder;
@@ -44,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadInitialData();
+    _loadShiftSettings();
     _setupRealtimeListener();
   }
 
@@ -84,6 +88,108 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // Load daily shift settings (rider count for tonight)
+  Future<void> _loadShiftSettings() async {
+    try {
+      final todayStr = DateTime.now().toIso8601String().split('T')[0];
+      final response = await Supabase.instance.client
+          .from('shift_settings')
+          .select('riders_count')
+          .eq('date', todayStr)
+          .maybeSingle();
+
+      if (response != null && response['riders_count'] != null) {
+        setState(() {
+          _activeRidersCount = (response['riders_count'] as num).toInt();
+        });
+      }
+    } catch (e) {
+      consoleLog('Shift settings load fallback: $e');
+    }
+  }
+
+  void consoleLog(String msg) {
+    debugPrint(msg);
+  }
+
+  Future<void> _setRidersCount(int count) async {
+    setState(() {
+      _activeRidersCount = count;
+    });
+
+    try {
+      final todayStr = DateTime.now().toIso8601String().split('T')[0];
+      await Supabase.instance.client.from('shift_settings').upsert({
+        'date': todayStr,
+        'riders_count': count,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      consoleLog('Error saving shift settings: $e');
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Impostati $count Rider per il turno di stasera! 🛵'),
+          backgroundColor: const Color(0xFFEA580C),
+        ),
+      );
+    }
+  }
+
+  void _showSetRidersCountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2E2A27),
+          title: const Row(
+            children: [
+              Icon(Icons.two_wheeler, color: Color(0xFFEA580C)),
+              SizedBox(width: 10),
+              Text('RIDER IN SERVIZIO STASERA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Quanti fattorini ci sono in servizio per il turno di stasera?\nQuesto parametro adatta il calcolo del sovraccarico consegne.',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [1, 2, 3, 4].map((count) {
+                  final isSelected = _activeRidersCount == count;
+                  return ChoiceChip(
+                    label: Text('$count Rider', style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.black : Colors.white)),
+                    selected: isSelected,
+                    selectedColor: const Color(0xFFFACC15),
+                    backgroundColor: Colors.white12,
+                    onSelected: (selected) {
+                      if (selected) {
+                        _setRidersCount(count);
+                        Navigator.pop(context);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CHIUDI', style: TextStyle(color: Colors.white60)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Listen to Supabase Postgres changes for real-time notifications
@@ -175,7 +281,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return grouped;
   }
 
-  // Extract all unique driver names from Telegram claims & custom list
   List<String> getExtractedDrivers() {
     final Set<String> drivers = {};
     for (final driver in _customDrivers) {
@@ -196,7 +301,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return drivers.toList()..sort();
   }
 
-  // Helper to extract clean driver name from order notes
   String? _getDriverFromOrder(OrderModel order) {
     if (order.notes != null && order.notes!.isNotEmpty) {
       final note = order.notes!;
@@ -553,10 +657,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   'Incasso: €${getActiveKitchenOrders().where((o) => o.status == 'completed').fold(0.0, (double sum, o) => sum + o.totalPrice).toStringAsFixed(2)}',
                   style: const TextStyle(color: Color(0xFFFACC15), fontSize: 14, fontWeight: FontWeight.bold),
                 ),
+                const SizedBox(height: 12),
+
+                // Active Rider Count Selector Widget
+                InkWell(
+                  onTap: _showSetRidersCountDialog,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E2A27),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFEA580C).withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$_activeRidersCount Rider Stasera',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                        const Icon(Icons.edit, color: Color(0xFFFACC15), size: 14),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
           const Divider(color: Colors.white10),
           const SizedBox(height: 10),
           _buildSidebarButton(
@@ -936,28 +1071,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'GESTIONE FATTORINI & ASSEGNAZIONI',
                     style: TextStyle(color: Color(0xFFFACC15), fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.1),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Tracciamento consegne, presa in carico da Telegram e abbinamento consegne vicine (~500m).',
-                    style: TextStyle(color: Colors.white60, fontSize: 14),
+                    'Tracciamento consegne, presa in carico da Telegram e abbinamento vicini (Rider stasera: $_activeRidersCount).',
+                    style: const TextStyle(color: Colors.white60, fontSize: 14),
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEA580C),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                ),
-                icon: const Icon(Icons.person_add, color: Colors.white),
-                label: const Text('+ AGGIUNGI FATTORINO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                onPressed: _showAddDriverDialog,
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E2A27),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      side: const BorderSide(color: Color(0xFFFACC15)),
+                    ),
+                    icon: const Icon(Icons.two_wheeler, color: Color(0xFFFACC15)),
+                    label: Text('$_activeRidersCount RIDER STASERA', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    onPressed: _showSetRidersCountDialog,
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEA580C),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    ),
+                    icon: const Icon(Icons.person_add, color: Colors.white),
+                    label: const Text('+ AGGIUNGI FATTORINO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    onPressed: _showAddDriverDialog,
+                  ),
+                ],
               ),
             ],
           ),
@@ -1218,14 +1368,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'SQUADRA FATTORINI',
-                style: TextStyle(color: Color(0xFFFACC15), fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                'RIDER STASERA: $_activeRidersCount',
+                style: const TextStyle(color: Color(0xFFFACC15), fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              IconButton(
-                icon: const Icon(Icons.person_add, color: Color(0xFFEA580C)),
-                onPressed: _showAddDriverDialog,
-                tooltip: 'Aggiungi Fattorino',
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: _showSetRidersCountDialog,
+                    child: const Text('CAMBIA', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.person_add, color: Color(0xFFEA580C)),
+                    onPressed: _showAddDriverDialog,
+                    tooltip: 'Aggiungi Fattorino',
+                  ),
+                ],
               ),
             ],
           ),

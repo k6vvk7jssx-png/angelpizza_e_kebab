@@ -53,8 +53,25 @@ export async function POST(request: Request) {
     let batchId = '';
     let mapsMultiStopUrl = '';
 
+    // Fetch tonight's active rider count from shift_settings (defaults to 2)
+    let shiftRidersCount = 2;
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { data: shiftData } = await supabase
+        .from('shift_settings')
+        .select('riders_count')
+        .eq('date', todayStr)
+        .maybeSingle();
+
+      if (shiftData && shiftData.riders_count) {
+        shiftRidersCount = shiftData.riders_count;
+      }
+    } catch (e) {
+      console.warn('shift_settings fetch fallback:', e);
+    }
+
     if (delivery_address && delivery_address.trim().length > 3) {
-      // Find candidate unassigned delivery orders in the same 15-min shift window
+      // Find candidate unassigned delivery orders in the same shift window
       const { data: activeOrders } = await supabase
         .from('orders')
         .select('*')
@@ -71,7 +88,8 @@ export async function POST(request: Request) {
             (!o.notes || (!o.notes.includes('Abbinato') && !o.notes.includes('Batch:')))
         );
 
-        if (candidateDeliveryOrders.length > 0) {
+        // Batching triggers when delivery orders count >= shiftRidersCount
+        if (candidateDeliveryOrders.length >= Math.max(1, shiftRidersCount - 1)) {
           const newOrderLoc = await geocodeLivornoAddress(delivery_address);
 
           for (const candidate of candidateDeliveryOrders) {
@@ -83,7 +101,7 @@ export async function POST(request: Request) {
             const angleDiff = Math.abs(newBearing - candidateBearing);
             const isSameDirection = angleDiff <= 35 || angleDiff >= 325;
 
-            // Trigger batching ONLY if within 600m radius OR within 1000m along same direction corridor
+            // Trigger batching ONLY if within 600m radius OR within 1100m along same direction corridor
             if (dist <= 600 || (dist <= 1100 && isSameDirection)) {
               isBatched = true;
               pairedOrder = candidate;

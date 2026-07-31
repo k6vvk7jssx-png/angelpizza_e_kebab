@@ -19,8 +19,50 @@ export async function POST(request: Request) {
         'Fattorino';
       const message = callbackQuery.message;
 
+      // Handle Daily Rider Count Setting (set_riders:COUNT)
+      if (dataStr.startsWith('set_riders:')) {
+        const ridersCount = parseInt(dataStr.split(':')[1] || '2', 10);
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Save into shift_settings table or fallback
+        try {
+          await supabase.from('shift_settings').upsert({
+            date: todayStr,
+            riders_count: ridersCount,
+            updated_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('shift_settings table not available, fallback to metadata:', e);
+        }
+
+        if (botToken) {
+          await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              callback_query_id: callbackId,
+              text: `✅ Impostati ${ridersCount} Rider per il turno serale!`,
+              show_alert: true,
+            }),
+          }).catch(console.error);
+
+          if (message && message.message_id) {
+            await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: message.chat.id,
+                message_id: message.message_id,
+                text: `✅ *TURNO SERALE IMPOSTATO:* *${ridersCount} RIDER IN SERVIZIO STASERA!* 🛵💨\nIl sistema di abbinamento consegne si adatterà a ${ridersCount} fattorini.`,
+                parse_mode: 'Markdown',
+              }),
+            }).catch(console.error);
+          }
+        }
+      }
+
       // Handle Double Delivery Batch Claim
-      if (dataStr.startsWith('claim_batch:')) {
+      else if (dataStr.startsWith('claim_batch:')) {
         const parts = dataStr.split(':');
         const batchId = parts[1] || 'BATCH';
         const orderId1 = parts[2];
@@ -143,6 +185,38 @@ export async function POST(request: Request) {
               callback_query_id: callbackId,
               text: `⚠️ Questa consegna è già stata prenotata da un altro fattorino!`,
               show_alert: true,
+            }),
+          }).catch(console.error);
+        }
+      }
+    }
+
+    // Handle Incoming Telegram Text Commands (e.g. /rider, /shift, /start)
+    if (body.message && body.message.text) {
+      const text = body.message.text.toLowerCase();
+      const chatId = body.message.chat.id;
+
+      if (text.includes('/rider') || text.includes('/shift') || text.includes('/start') || text.includes('quanti rider')) {
+        if (botToken) {
+          await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: `🌙 *TURNO SERALE ANGELS LIVORNO* 🛵\n\nQuanti fattorini ci sono in servizio stasera?`,
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '🛵 1 Rider', callback_data: 'set_riders:1' },
+                    { text: '🛵 2 Rider', callback_data: 'set_riders:2' },
+                  ],
+                  [
+                    { text: '🛵 3 Rider', callback_data: 'set_riders:3' },
+                    { text: '🛵 4 Rider', callback_data: 'set_riders:4' },
+                  ],
+                ],
+              },
             }),
           }).catch(console.error);
         }
