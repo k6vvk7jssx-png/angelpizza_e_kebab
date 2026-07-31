@@ -24,12 +24,13 @@ export async function POST(request: Request) {
         const orderId = parts[1];
         const shortId = parts[2] || 'ORD';
 
-        // Check or update status on Supabase
+        // Update status and save driver name into notes in Supabase
         if (orderId) {
           await supabase
             .from('orders')
             .update({
               status: 'delivering',
+              notes: `Fattorino: ${driverName.toUpperCase()}`,
             })
             .eq('id', orderId);
         }
@@ -78,7 +79,6 @@ export async function POST(request: Request) {
           }
         }
       } else if (dataStr === 'claimed_done') {
-        // Driver taps an already claimed button
         if (botToken) {
           await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
             method: 'POST',
