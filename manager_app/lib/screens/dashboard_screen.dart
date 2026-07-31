@@ -36,6 +36,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Active Riders Count for Tonight's Shift (Defaults to 2)
   int _activeRidersCount = 2;
 
+  // Delivery Fee per completed delivery paid as rider commission (Defaults to €2.00)
+  double _riderFeePerDelivery = 2.00;
+
   // Archive view selections
   String? _selectedArchiveDay;
   OrderModel? _selectedArchiveOrder;
@@ -197,6 +200,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _showRiderFeeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2E2A27),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('IMPOSTA PROVVIGIONE PER CONSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Seleziona il compenso/provvigione da corrispondere al fattorino per ogni singola consegna completata:',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [1.50, 2.00, 2.50, 3.00, 3.50].map((fee) {
+                  final isSelected = _riderFeePerDelivery == fee;
+                  return ChoiceChip(
+                    label: Text('€ ${fee.toStringAsFixed(2)} / cons.', style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.black : Colors.white)),
+                    selected: isSelected,
+                    selectedColor: const Color(0xFFFACC15),
+                    backgroundColor: Colors.white12,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _riderFeePerDelivery = fee;
+                        });
+                        Navigator.pop(context);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CHIUDI', style: TextStyle(color: Colors.white60)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // Listen to Supabase Postgres changes for real-time notifications
   void _setupRealtimeListener() {
     _realtimeChannel = _orderService.subscribeToOrders(
@@ -293,24 +347,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     for (final order in _orders) {
-      if (order.notes != null && order.notes!.isNotEmpty) {
-        final note = order.notes!;
-        if (note.contains('Fattorino:')) {
-          final name = note.replaceAll('Fattorino:', '').replaceAll(RegExp(r'\(.*\)'), '').trim().toUpperCase();
-          if (name.isNotEmpty) {
-            drivers.add(name);
-          }
-        }
+      final driver = _getDriverFromOrder(order);
+      if (driver != null && driver.isNotEmpty) {
+        drivers.add(driver.toUpperCase());
       }
     }
     return drivers.toList()..sort();
   }
 
+  // Robust parsing to extract driver name from order notes
   String? _getDriverFromOrder(OrderModel order) {
     if (order.notes != null && order.notes!.isNotEmpty) {
       final note = order.notes!;
-      if (note.contains('Fattorino:')) {
-        return note.replaceAll('Fattorino:', '').replaceAll(RegExp(r'\(.*\)'), '').trim().toUpperCase();
+      final index = note.indexOf('Fattorino:');
+      if (index != -1) {
+        String driverPart = note.substring(index + 'Fattorino:'.length).trim();
+        if (driverPart.contains('|')) {
+          driverPart = driverPart.split('|').first.trim();
+        }
+        if (driverPart.contains('(')) {
+          driverPart = driverPart.split('(').first.trim();
+        }
+        final clean = driverPart.trim().toUpperCase();
+        if (clean.isNotEmpty) {
+          return clean;
+        }
       }
     }
     return null;
@@ -451,6 +512,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _showDriverEarningsReportModal() {
+    final drivers = getExtractedDrivers();
+    final activeShiftOrders = getActiveKitchenOrders();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: const Color(0xFF1C1917),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('🧾 RIEPILOGO COMPENSI & PROVVIGIONI FATTORINI', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 15)),
+                          SizedBox(height: 2),
+                          Text('Calcolo provvigione e incasso per ogni fattorino.', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(color: Colors.white24, height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: drivers.length,
+                    itemBuilder: (context, index) {
+                      final driverName = drivers[index];
+                      final driverOrders = activeShiftOrders.where((o) => _getDriverFromOrder(o) == driverName).toList();
+                      final completedCount = driverOrders.where((o) => o.status == 'completed').length;
+                      final totalEarnings = completedCount * _riderFeePerDelivery;
+                      final totalCash = driverOrders.where((o) => o.status == 'completed').fold(0.0, (double sum, o) => sum + o.totalPrice);
+
+                      return Card(
+                        color: const Color(0xFF2E2A27),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '🛵 $driverName',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEA580C),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      'COMPENSO: € ${totalEarnings.toStringAsFixed(2)}',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text('Consegne Completate: $completedCount (a €${_riderFeePerDelivery.toStringAsFixed(2)} cad.)', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                              Text('Incasso Cassa Consegnato: € ${totalCash.toStringAsFixed(2)}', style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   String _formatTime(DateTime dateTime) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
@@ -505,7 +664,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           builder: (context, scrollController) {
             return Column(
               children: [
-                // Drag handle indicator
                 Container(
                   margin: const EdgeInsets.only(top: 10, bottom: 6),
                   width: 40,
@@ -1081,7 +1239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (driverInfo != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '🛵 $driverInfo',
+                      '🛵 FATTORINO: $driverInfo',
                       style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -1113,12 +1271,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'GESTIONE FATTORINI & ASSEGNAZIONI',
+                    'GESTIONE FATTORINI & PROVVIGIONI',
                     style: TextStyle(color: Color(0xFFFACC15), fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.1),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Tracciamento consegne, presa in carico da Telegram e abbinamento vicini (Rider stasera: $_activeRidersCount).',
+                    'Presa in carico da Telegram, abbinamento vicino (~500m) e compenso provvigioni (€${_riderFeePerDelivery.toStringAsFixed(2)}/cons).',
                     style: const TextStyle(color: Colors.white60, fontSize: 14),
                   ),
                 ],
@@ -1131,9 +1289,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       side: const BorderSide(color: Color(0xFFFACC15)),
                     ),
-                    icon: const Icon(Icons.two_wheeler, color: Color(0xFFFACC15)),
-                    label: Text('$_activeRidersCount RIDER STASERA', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    onPressed: _showSetRidersCountDialog,
+                    icon: const Icon(Icons.receipt_long, color: Color(0xFFFACC15)),
+                    label: const Text('🧾 STAMPA COMPENSI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    onPressed: _showDriverEarningsReportModal,
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
@@ -1157,9 +1315,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'SQUADRA RIDER & STATISTICHE DI OGGI',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'SQUADRA RIDER & COMPENSI DI OGGI',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFFACC15)),
+                        icon: const Icon(Icons.tune, size: 16),
+                        label: Text('Provvigione: €${_riderFeePerDelivery.toStringAsFixed(2)} / cons.', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        onPressed: _showRiderFeeDialog,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
@@ -1170,7 +1339,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       crossAxisCount: 3,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 2.2,
+                      childAspectRatio: 2.1,
                     ),
                     itemCount: drivers.length,
                     itemBuilder: (context, index) {
@@ -1179,6 +1348,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final completedCount = driverOrders.where((o) => o.status == 'completed').length;
                       final inProgressCount = driverOrders.where((o) => o.status == 'delivering' || o.status == 'accepted').length;
                       final totalCash = driverOrders.where((o) => o.status == 'completed').fold(0.0, (double sum, o) => sum + o.totalPrice);
+                      final totalEarnings = completedCount * _riderFeePerDelivery;
 
                       return Container(
                         padding: const EdgeInsets.all(18),
@@ -1203,14 +1373,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    driverName,
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        driverName,
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+                                      ),
+                                      Text(
+                                        '€ ${totalEarnings.toStringAsFixed(2)}',
+                                        style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '$completedCount consegne • €${totalCash.toStringAsFixed(2)}',
-                                    style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.w600, fontSize: 13),
+                                    '$completedCount consegne • Incasso Cassa: €${totalCash.toStringAsFixed(2)}',
+                                    style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 12),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
@@ -1441,13 +1620,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'SQUADRA FATTORINI',
+                'SQUADRA FATTORINI & COMPENSI',
                 style: TextStyle(color: Color(0xFFFACC15), fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              IconButton(
-                icon: const Icon(Icons.person_add, color: Color(0xFFEA580C)),
-                onPressed: _showAddDriverDialog,
-                tooltip: 'Aggiungi Fattorino',
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.receipt_long, color: Color(0xFFFACC15)),
+                    onPressed: _showDriverEarningsReportModal,
+                    tooltip: 'Stampa Report Compensi',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.person_add, color: Color(0xFFEA580C)),
+                    onPressed: _showAddDriverDialog,
+                    tooltip: 'Aggiungi Fattorino',
+                  ),
+                ],
               ),
             ],
           ),
@@ -1462,6 +1650,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final driverOrders = deliveryOrders.where((o) => _getDriverFromOrder(o) == driverName).toList();
               final completedCount = driverOrders.where((o) => o.status == 'completed').length;
               final totalCash = driverOrders.where((o) => o.status == 'completed').fold(0.0, (double sum, o) => sum + o.totalPrice);
+              final totalEarnings = completedCount * _riderFeePerDelivery;
 
               return Card(
                 color: const Color(0xFF2E2A27),
@@ -1472,9 +1661,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     backgroundColor: Color(0xFFEA580C),
                     child: Icon(Icons.two_wheeler, color: Colors.white, size: 20),
                   ),
-                  title: Text(driverName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(driverName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('€ ${totalEarnings.toStringAsFixed(2)}', style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 13)),
+                    ],
+                  ),
                   subtitle: Text('$completedCount consegne • Incasso: €${totalCash.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  trailing: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.white54),
                 ),
               );
             },

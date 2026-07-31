@@ -13,10 +13,11 @@ export async function POST(request: Request) {
       const callbackQuery = body.callback_query;
       const callbackId = callbackQuery.id;
       const dataStr = callbackQuery.data || '';
-      const driverName =
+      const driverName = (
         callbackQuery.from.first_name ||
         callbackQuery.from.username ||
-        'Fattorino';
+        'Fattorino'
+      ).toUpperCase();
       const message = callbackQuery.message;
 
       // Handle Daily Rider Count Setting (set_riders:COUNT)
@@ -71,13 +72,27 @@ export async function POST(request: Request) {
         const targetIds = [orderId1, orderId2].filter(Boolean);
 
         if (targetIds.length > 0) {
-          await supabase
-            .from('orders')
-            .update({
-              status: 'delivering',
-              notes: `Fattorino: ${driverName.toUpperCase()} (Doppia #${batchId})`,
-            })
-            .in('id', targetIds);
+          for (const id of targetIds) {
+            const { data: existingOrder } = await supabase
+              .from('orders')
+              .select('notes')
+              .eq('id', id)
+              .maybeSingle();
+
+            const rawNotes = existingOrder?.notes || '';
+            const cleanNotes = rawNotes.includes('Fattorino:')
+              ? rawNotes.split('Fattorino:')[0].trim()
+              : rawNotes;
+            const prefix = cleanNotes.length > 0 ? `${cleanNotes} | ` : '';
+
+            await supabase
+              .from('orders')
+              .update({
+                status: 'delivering',
+                notes: `${prefix}Fattorino: ${driverName}`,
+              })
+              .eq('id', id);
+          }
         }
 
         if (botToken) {
@@ -96,7 +111,7 @@ export async function POST(request: Request) {
             const updatedText =
               originalText.replace(
                 '🟢 *STATO:* *PRONTO PER PRESA IN CARICO DOPPIA*',
-                `🔒 *PRENOTATO DA:* *${driverName.toUpperCase()}* 🛵 (DOPPIA CONSEGNA)`
+                `🔒 *PRENOTATO DA:* *${driverName}* 🛵 (DOPPIA CONSEGNA)`
               ) + `\n\n🔒 *PRENOTATO IN SIMULTANEA DA:* ${driverName}`;
 
             await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
@@ -111,7 +126,7 @@ export async function POST(request: Request) {
                   inline_keyboard: [
                     [
                       {
-                        text: `🔒 DOPPIA PRENOTATA DA ${driverName.toUpperCase()}`,
+                        text: `🔒 DOPPIA PRENOTATA DA ${driverName}`,
                         callback_data: 'claimed_done',
                       },
                     ],
@@ -126,11 +141,23 @@ export async function POST(request: Request) {
         const orderId = parts[1];
 
         if (orderId) {
+          const { data: existingOrder } = await supabase
+            .from('orders')
+            .select('notes')
+            .eq('id', orderId)
+            .maybeSingle();
+
+          const rawNotes = existingOrder?.notes || '';
+          const cleanNotes = rawNotes.includes('Fattorino:')
+            ? rawNotes.split('Fattorino:')[0].trim()
+            : rawNotes;
+          const prefix = cleanNotes.length > 0 ? `${cleanNotes} | ` : '';
+
           await supabase
             .from('orders')
             .update({
               status: 'delivering',
-              notes: `Fattorino: ${driverName.toUpperCase()}`,
+              notes: `${prefix}Fattorino: ${driverName}`,
             })
             .eq('id', orderId);
         }
@@ -151,7 +178,7 @@ export async function POST(request: Request) {
             const updatedText =
               originalText.replace(
                 '🟢 *STATO:* *DISPONIBILE PER LA CONSEGNA*',
-                `🔒 *PRENOTATO DA:* *${driverName.toUpperCase()}* 🛵`
+                `🔒 *PRENOTATO DA:* *${driverName}* 🛵`
               ) + `\n\n🔒 *PRENOTATO IN SIMULTANEA DA:* ${driverName}`;
 
             await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
@@ -166,7 +193,7 @@ export async function POST(request: Request) {
                   inline_keyboard: [
                     [
                       {
-                        text: `🔒 PRENOTATO DA ${driverName.toUpperCase()}`,
+                        text: `🔒 PRENOTATO DA ${driverName}`,
                         callback_data: 'claimed_done',
                       },
                     ],
