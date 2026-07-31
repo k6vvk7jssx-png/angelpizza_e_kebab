@@ -18,12 +18,14 @@ The checkout flow MUST ALWAYS include ALL of the following features:
 - **Category Tabs Sticky Bar**: Sticky positioning below header with category icons (🍕, 🧀, 🥖, 🍔, 🍟, 🥤, 🍹) and pill styling.
 - **Quantity Steppers**: Dish cards MUST feature quantity steppers (`− 1 +`) when an item is already added to the cart.
 - **Floating Cart Pill on Mobile**: Fixed bottom pill (`999px` radius) with item count badge, total price, and arrow opening the bottom sheet drawer.
+- **Full Mobile Responsiveness for Manager App**: All screens in the Flutter Manager App must be 100% mobile-optimized with responsive bottom sheets, non-overlapping action cards, touch-friendly steppers, and adaptive grids for smartphones (<850px width).
 
-### 3. NAVIGATION & LINKS
+### 3. NAVIGATION, LINKS & GOOGLE REVIEWS STYLES
 - **Separate Routes**: Main navigation items (`Il Menu`, `Notizie & Novità`, `Contatti`) MUST point to dedicated Next.js page routes (`/menu`, `/notizie`, `/contatti`).
 - **External Links**: Phone numbers, Google Maps location, and Google Reviews MUST open in a new browser tab using `target="_blank" rel="noopener noreferrer"`.
-- **Google Reviews Integration**: The hero banner card and footer MUST include direct buttons to *"⭐ Valuta il Locale su Google"* opening the Google Maps review URL in a new tab.
+- **Google Reviews Integration (MANDATORY)**: The Hero banner section on `page.tsx` and Footer MUST ALWAYS feature the high-visibility **Google Rating & 5-Star Badge** (`4.9 ⭐⭐⭐⭐⭐ • Valuta su Google Maps`) opening the Google Maps review link in a new tab.
 
 ### 4. MANAGER APP & TELEGRAM LOGISTICS
 - **Daily Shift Reset**: Kitchen dashboard in the Flutter manager app resets every day at 12:00 PM (noon).
+- **Daily Rider Prompt**: Every shift start, the system prompts for the number of active riders (via Telegram command `/rider` or Manager App header selector) to adjust delivery overload batching.
 - **Telegram Claim Button**: Telegram order messages contain inline callback buttons `[ 🛵 PRENDI IN CARICO ]` handled by `/api/telegram-webhook` to lock the order for the first claiming driver.

@@ -177,25 +177,64 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.googleReviewBtn {
+.heroGoogleRatingCard {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  gap: 10px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   color: #0f172a !important;
   font-weight: 800;
-  font-size: 0.85rem;
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: 999px;
   text-decoration: none !important;
-  box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
-.googleReviewBtn:hover {
+.heroGoogleRatingCard:hover {
   transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.45);
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.4);
+}
+
+.googleGLogo {
+  font-family: var(--font-montserrat), sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, #4285f4 0%, #34a853 50%, #fbbc05 75%, #ea4335 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.ratingInfoContainer {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.ratingStarsRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ratingScoreNumber {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.goldStarsString {
+  color: #eab308;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+}
+
+.ratingLabelText {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
 }
 
 .heroTitle {

@@ -532,14 +532,23 @@ export default function Home() {
           <div className={styles.heroBadgesRow}>
             <span className={styles.heroBadgeHighlight}>⏰ Aperto • 12:00 - 24:00</span>
             <span className={styles.heroBadgeSecondary}>🛵 Consegna Gratuita</span>
-            {/* DIRECT GOOGLE REVIEW BUTTON */}
+
+            {/* DIRECT GOOGLE REVIEWS 5-STAR RATING BADGE */}
             <a
               href={googleReviewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.googleReviewBtn}
+              className={styles.heroGoogleRatingCard}
+              title="Valuta Angels Livorno su Google Maps"
             >
-              ⭐ Valuta su Google
+              <span className={styles.googleGLogo}>G</span>
+              <div className={styles.ratingInfoContainer}>
+                <div className={styles.ratingStarsRow}>
+                  <span className={styles.ratingScoreNumber}>4.9</span>
+                  <span className={styles.goldStarsString}>★★★★★</span>
+                </div>
+                <span className={styles.ratingLabelText}>Valuta su Google Maps</span>
+              </div>
             </a>
           </div>
 

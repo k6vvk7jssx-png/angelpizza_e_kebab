@@ -146,11 +146,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF2E2A27),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.two_wheeler, color: Color(0xFFEA580C)),
               SizedBox(width: 10),
-              Text('RIDER IN SERVIZIO STASERA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Expanded(
+                child: Text('RIDER IN SERVIZIO STASERA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
             ],
           ),
           content: Column(
@@ -161,8 +164,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
                 children: [1, 2, 3, 4].map((count) {
                   final isSelected = _activeRidersCount == count;
                   return ChoiceChip(
@@ -323,16 +328,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       await _orderService.updateOrderDriver(order.id, driverName);
       await _loadInitialData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ordine assegnato a $driverName 🛵'),
-          backgroundColor: Colors.green.shade800,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ordine assegnato a $driverName 🛵'),
+            backgroundColor: Colors.green.shade800,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore durante l\'assegnazione: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore durante l\'assegnazione: $e')),
+        );
+      }
     }
   }
 
@@ -340,16 +349,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       await _orderService.unbatchOrder(order.id);
       await _loadInitialData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Abbinamento rimosso. Ordine separato con successo! ✂️'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Abbinamento rimosso. Ordine separato con successo! ✂️'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore durante la separazione: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore durante la separazione: $e')),
+        );
+      }
     }
   }
 
@@ -364,9 +377,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         await _notificationManager.stopOrderAlarm();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore durante l\'aggiornamento: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore durante l\'aggiornamento: $e')),
+        );
+      }
     }
   }
 
@@ -377,13 +392,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final newTime = targetOrder.requestedTime.add(Duration(minutes: minutesDelta));
       await _orderService.updateOrderTime(targetOrder.id, newTime);
       await _loadInitialData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Orario aggiornato a ${_formatTime(newTime)}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Orario aggiornato a ${_formatTime(newTime)}')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore durante l\'aggiornamento dell\'orario: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore durante l\'aggiornamento dell\'orario: $e')),
+        );
+      }
     }
   }
 
@@ -394,7 +413,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF2E2A27),
-          title: const Text('AGGIUNGI NUOVO FATTORINO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('AGGIUNGI NUOVO FATTORINO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           content: TextField(
             controller: controller,
             style: const TextStyle(color: Colors.white),
@@ -471,6 +491,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: const Color(0xFF1C1917),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -479,33 +500,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return DraggableScrollableSheet(
           expand: false,
           initialChildSize: 0.9,
-          maxChildSize: 0.95,
+          maxChildSize: 0.96,
           minChildSize: 0.5,
           builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'DETTAGLIO ORDINE',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                    const Divider(color: Colors.white24),
-                    _buildOrderDetailsPane(order),
-                  ],
+            return Column(
+              children: [
+                // Drag handle indicator
+                Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white30,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'DETTAGLIO ORDINE',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(color: Colors.white24, height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildOrderDetailsPane(order),
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -582,6 +618,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               backgroundColor: const Color(0xFF141211),
               selectedItemColor: const Color(0xFFEA580C),
               unselectedItemColor: Colors.white60,
+              selectedFontSize: 12,
+              unselectedFontSize: 10,
               type: BottomNavigationBarType.fixed,
               currentIndex: _currentTab.index,
               onTap: (index) {
@@ -1365,29 +1403,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E2A27),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFEA580C).withOpacity(0.4)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 22),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'RIDER STASERA: $_activeRidersCount IN SERVIZIO',
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: _showSetRidersCountDialog,
+                  child: const Text('CAMBIA', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'RIDER STASERA: $_activeRidersCount',
-                style: const TextStyle(color: Color(0xFFFACC15), fontSize: 16, fontWeight: FontWeight.bold),
+              const Text(
+                'SQUADRA FATTORINI',
+                style: TextStyle(color: Color(0xFFFACC15), fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: _showSetRidersCountDialog,
-                    child: const Text('CAMBIA', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.person_add, color: Color(0xFFEA580C)),
-                    onPressed: _showAddDriverDialog,
-                    tooltip: 'Aggiungi Fattorino',
-                  ),
-                ],
+              IconButton(
+                icon: const Icon(Icons.person_add, color: Color(0xFFEA580C)),
+                onPressed: _showAddDriverDialog,
+                tooltip: 'Aggiungi Fattorino',
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           ListView.builder(
             shrinkWrap: true,
@@ -1408,7 +1472,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     backgroundColor: Color(0xFFEA580C),
                     child: Icon(Icons.two_wheeler, color: Colors.white, size: 20),
                   ),
-                  title: Text(driverName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  title: Text(driverName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                   subtitle: Text('$completedCount consegne • Incasso: €${totalCash.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                   trailing: const Icon(Icons.check_circle_outline, color: Colors.greenAccent),
                 ),
@@ -1464,12 +1528,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text('📍 ${order.guestAddress ?? "N/D"}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 10),
 
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       assignedDriver != null ? '🛵 $assignedDriver' : '⚠️ NON ASSEGNATO',
@@ -1486,6 +1554,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ],
                                 ),
                                 Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     if (isBatched)
                                       IconButton(
@@ -1749,6 +1818,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: const Color(0xFF1C1917),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
@@ -2215,7 +2285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final availableDrivers = getExtractedDrivers();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2224,17 +2294,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 'ORDINE: #$shortId',
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: _getStatusColor(order.status),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   _getStatusLabel(order.status),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                 ),
               ),
             ],
@@ -2244,41 +2314,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
             'Inserito il: ${order.createdAt.day}/${order.createdAt.month}/${order.createdAt.year} alle ore ${_formatTime(order.createdAt)}',
             style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           if (isBatched) ...[
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.purple.shade900.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.purpleAccent),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '📦 DOPPIA CONSEGNA ABBINATA IN ZONA',
-                          style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          '📦 DOPPIA CONSEGNA ABBINATA',
+                          style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          order.notes ?? 'Stessa direzione (~500m)',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                      ),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                        icon: const Icon(Icons.content_cut, size: 14),
+                        label: const Text('DIVIDI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        onPressed: () => _unbatchOrder(order),
+                      ),
+                    ],
                   ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
-                    icon: const Icon(Icons.content_cut, size: 16, color: Colors.white),
-                    label: const Text('DIVIDI ORDINI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                    onPressed: () => _unbatchOrder(order),
+                  Text(
+                    order.notes ?? 'Stessa direzione (~500m)',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
@@ -2287,10 +2356,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
 
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: const Color(0xFF2E2A27),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white10),
             ),
             child: Column(
@@ -2314,33 +2383,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     '🛵 FATTORINO ASSEGNATO:',
-                    style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
 
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: driverName != null ? Colors.cyan.shade900.withOpacity(0.4) : Colors.white12,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: driverName != null ? Colors.cyanAccent.withOpacity(0.5) : Colors.white24,
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: driverName != null ? Colors.cyan.shade900.withOpacity(0.4) : Colors.white12,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: driverName != null ? Colors.cyanAccent.withOpacity(0.5) : Colors.white24,
                           ),
-                          child: Text(
-                            driverName != null ? '🛵 $driverName' : '⚠️ Nessun fattorino assegnato',
-                            style: TextStyle(
-                              color: driverName != null ? Colors.cyanAccent : Colors.amber,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                        ),
+                        child: Text(
+                          driverName != null ? '🛵 $driverName' : '⚠️ NON ASSEGNATO',
+                          style: TextStyle(
+                            color: driverName != null ? Colors.cyanAccent : Colors.amber,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
                       PopupMenuButton<String>(
                         color: const Color(0xFF1C1917),
                         onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
@@ -2359,12 +2428,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }).toList();
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEA580C),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text('CAMBIA / ASSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          child: const Text('CAMBIA / ASSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                       ),
                     ],
@@ -2375,27 +2444,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Divider(color: Colors.white10),
                 const SizedBox(height: 8),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    Expanded(
-                      child: Text(
-                        'ORARIO RICHIESTO: ${_formatTime(order.requestedTime)}',
-                        style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
+                    Text(
+                      'ORARIO RICHIESTO: ${_formatTime(order.requestedTime)}',
+                      style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
                           onPressed: () => _updateOrderTime(-15),
                           tooltip: 'Anticipa 15 min',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
+                        const SizedBox(width: 6),
                         const Text('MODIFICA', style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 6),
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline, color: Colors.greenAccent),
                           onPressed: () => _updateOrderTime(15),
                           tooltip: 'Posticipa 15 min',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),
@@ -2404,13 +2481,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           const Text(
             'ARTICOLI ORDINATI:',
-            style: TextStyle(color: Color(0xFFFACC15), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+            style: TextStyle(color: Color(0xFFFACC15), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.8),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           ListView.separated(
             shrinkWrap: true,
@@ -2420,29 +2497,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
             itemBuilder: (context, index) {
               final item = order.items[index];
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
                         '${item['qty'] ?? item['quantity'] ?? 1}x  ${item['name'] ?? 'Piatto'}',
-                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
                     Text(
                       '€${(Number(item['price_at_order'] ?? item['price'] ?? 0) * Number(item['qty'] ?? item['quantity'] ?? 1)).toStringAsFixed(2)}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
               );
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: const Color(0xFF2E2A27),
               borderRadius: BorderRadius.circular(8),
@@ -2452,54 +2529,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 const Text(
                   'TOTALE DA PAGARE:',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                 ),
                 Text(
                   '€${order.totalPrice.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.w900, fontSize: 22),
+                  style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.w900, fontSize: 20),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Action Status Buttons
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 10,
+            runSpacing: 10,
             alignment: WrapAlignment.center,
             children: [
               if (order.status == 'pending')
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEA580C),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
                   onPressed: () => _updateStatus('accepted'),
-                  child: const Text('🧑‍🍳 IN PREPARAZIONE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text('🧑‍🍳 IN PREPARAZIONE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               if (order.status == 'accepted')
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade600,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
                   onPressed: () => _updateStatus('delivering'),
-                  child: const Text('🛵 IN CONSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text('🛵 IN CONSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               if (order.status == 'delivering' || order.status == 'accepted')
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade600,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
                   onPressed: () => _updateStatus('completed'),
-                  child: const Text('✅ CONSEGNATO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text('✅ CONSEGNATO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               if (order.status != 'cancelled' && order.status != 'completed')
                 TextButton(
                   onPressed: () => _updateStatus('cancelled'),
-                  child: const Text('ANNULLA ORDINE', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  child: const Text('ANNULLA ORDINE', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
             ],
           ),
@@ -2519,10 +2596,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 100,
+          width: 90,
           child: Text(
             label,
-            style: const TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
         Expanded(
@@ -2530,7 +2607,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             value,
             style: TextStyle(
               color: valueColor ?? Colors.white,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
           ),
