@@ -37,6 +37,14 @@ class OrderService {
         .eq('id', orderId);
   }
 
+  // Unbatch/split a paired order
+  Future<void> unbatchOrder(String orderId) async {
+    await _client
+        .from('orders')
+        .update({'notes': null})
+        .eq('id', orderId);
+  }
+
   // Update requested time of a specific order
   Future<void> updateOrderTime(String orderId, DateTime newTime) async {
     await _client

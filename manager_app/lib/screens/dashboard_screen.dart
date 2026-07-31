@@ -109,7 +109,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       },
       onOrderUpdated: (id, status) {
-        // Reload all orders to sync status & notes driver assignment
         _loadInitialData();
       },
     );
@@ -187,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (order.notes != null && order.notes!.isNotEmpty) {
         final note = order.notes!;
         if (note.contains('Fattorino:')) {
-          final name = note.replaceAll('Fattorino:', '').trim().toUpperCase();
+          final name = note.replaceAll('Fattorino:', '').replaceAll(RegExp(r'\(.*\)'), '').trim().toUpperCase();
           if (name.isNotEmpty) {
             drivers.add(name);
           }
@@ -202,11 +201,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (order.notes != null && order.notes!.isNotEmpty) {
       final note = order.notes!;
       if (note.contains('Fattorino:')) {
-        return note.replaceAll('Fattorino:', '').trim().toUpperCase();
+        return note.replaceAll('Fattorino:', '').replaceAll(RegExp(r'\(.*\)'), '').trim().toUpperCase();
       }
-      return note.toUpperCase();
     }
     return null;
+  }
+
+  bool _isOrderBatched(OrderModel order) {
+    if (order.notes != null && order.notes!.isNotEmpty) {
+      final note = order.notes!;
+      return note.contains('Abbinato:') || note.contains('Doppia');
+    }
+    return false;
   }
 
   Future<void> _assignDriverToOrder(OrderModel order, String driverName) async {
@@ -222,6 +228,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Errore durante l\'assegnazione: $e')),
+      );
+    }
+  }
+
+  Future<void> _unbatchOrder(OrderModel order) async {
+    try {
+      await _orderService.unbatchOrder(order.id);
+      await _loadInitialData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Abbinamento rimosso. Ordine separato con successo! ✂️'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore durante la separazione: $e')),
       );
     }
   }
@@ -684,6 +707,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final order = activeOrders[index];
                       final isSelected = _selectedOrder?.id == order.id;
                       final driverInfo = _getDriverFromOrder(order);
+                      final isBatched = _isOrderBatched(order);
 
                       return Card(
                         color: isSelected
@@ -692,7 +716,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         shape: RoundedRectangleBorder(
                           side: BorderSide(
-                            color: isSelected ? const Color(0xFFEA580C) : Colors.transparent,
+                            color: isBatched ? Colors.purpleAccent : (isSelected ? const Color(0xFFEA580C) : Colors.transparent),
                             width: 1.5,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -703,12 +727,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               _selectedOrder = order;
                             });
                           },
-                          title: Text(
-                            order.guestName.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  order.guestName.toUpperCase(),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              if (isBatched)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.shade700,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text('📦 DOPPIA', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                ),
+                            ],
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -785,6 +821,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       itemBuilder: (context, index) {
         final order = activeOrders[index];
         final driverInfo = _getDriverFromOrder(order);
+        final isBatched = _isOrderBatched(order);
 
         return Card(
           color: const Color(0xFF2E2A27),
@@ -792,8 +829,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: order.status == 'pending' ? Colors.red : Colors.white10,
-              width: order.status == 'pending' ? 1.5 : 0.5,
+              color: isBatched ? Colors.purpleAccent : (order.status == 'pending' ? Colors.red : Colors.white10),
+              width: order.status == 'pending' || isBatched ? 1.5 : 0.5,
             ),
           ),
           child: ListTile(
@@ -855,6 +892,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
+                      if (isBatched) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.shade700,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('📦 DOPPIA', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
                     ],
                   ),
                   if (driverInfo != null) ...[
@@ -897,7 +945,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Tracciamento consegne, presa in carico da Telegram e assegnazione diretta.',
+                    'Tracciamento consegne, presa in carico da Telegram e abbinamento consegne vicine (~500m).',
                     style: TextStyle(color: Colors.white60, fontSize: 14),
                   ),
                 ],
@@ -997,7 +1045,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   // Delivery Orders Quick-Assign Section
                   const Text(
-                    'ORDINI A DOMICILIO - ASSEGNAZIONE RAPIDA',
+                    'ORDINI A DOMICILIO - ASSEGNAZIONE & ABBINAMENTI',
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 16),
@@ -1019,6 +1067,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           itemBuilder: (context, index) {
                             final order = deliveryOrders[index];
                             final assignedDriver = _getDriverFromOrder(order);
+                            final isBatched = _isOrderBatched(order);
 
                             return Card(
                               color: const Color(0xFF2E2A27),
@@ -1026,7 +1075,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 side: BorderSide(
-                                  color: assignedDriver != null ? Colors.cyanAccent.withOpacity(0.5) : Colors.white10,
+                                  color: isBatched ? Colors.purpleAccent : (assignedDriver != null ? Colors.cyanAccent.withOpacity(0.5) : Colors.white10),
+                                  width: isBatched ? 1.5 : 1.0,
                                 ),
                               ),
                               child: Padding(
@@ -1038,9 +1088,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            order.guestName.toUpperCase(),
-                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                order.guestName.toUpperCase(),
+                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                              ),
+                                              if (isBatched) ...[
+                                                const SizedBox(width: 10),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.purple.shade700,
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: const Text('📦 DOPPIA CONSEGNA ABBINATA', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                ),
+                                              ],
+                                            ],
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
@@ -1057,50 +1122,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     Expanded(
                                       flex: 2,
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
-                                          Text(
-                                            assignedDriver != null ? 'FATTORINO: $assignedDriver' : '⚠️ NON ASSEGNATO',
-                                            style: TextStyle(
-                                              color: assignedDriver != null ? Colors.cyanAccent : Colors.amber,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          PopupMenuButton<String>(
-                                            color: const Color(0xFF1C1917),
-                                            onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
-                                            itemBuilder: (context) {
-                                              return drivers.map((d) {
-                                                return PopupMenuItem<String>(
-                                                  value: d,
-                                                  child: Row(
-                                                    children: [
-                                                      const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 18),
-                                                      const SizedBox(width: 10),
-                                                      Text(d, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                                    ],
-                                                  ),
-                                                );
-                                              }).toList();
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFEA580C),
-                                                borderRadius: BorderRadius.circular(6),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                assignedDriver != null ? 'FATTORINO: $assignedDriver' : '⚠️ NON ASSEGNATO',
+                                                style: TextStyle(
+                                                  color: assignedDriver != null ? Colors.cyanAccent : Colors.amber,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
                                               ),
-                                              child: const Row(
-                                                mainAxisSize: MainAxisSize.min,
+                                              const SizedBox(height: 8),
+                                              Row(
                                                 children: [
-                                                  Icon(Icons.person_pin, color: Colors.white, size: 16),
-                                                  SizedBox(width: 6),
-                                                  Text('ASSEGNA ORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                                  if (isBatched)
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(right: 8.0),
+                                                      child: TextButton.icon(
+                                                        style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                                                        icon: const Icon(Icons.content_cut, size: 14),
+                                                        label: const Text('DIVIDI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                                        onPressed: () => _unbatchOrder(order),
+                                                      ),
+                                                    ),
+                                                  PopupMenuButton<String>(
+                                                    color: const Color(0xFF1C1917),
+                                                    onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
+                                                    itemBuilder: (context) {
+                                                      return drivers.map((d) {
+                                                        return PopupMenuItem<String>(
+                                                          value: d,
+                                                          child: Row(
+                                                            children: [
+                                                              const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 18),
+                                                              const SizedBox(width: 10),
+                                                              Text(d, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      }).toList();
+                                                    },
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFFEA580C),
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: const Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(Icons.person_pin, color: Colors.white, size: 16),
+                                                          SizedBox(width: 6),
+                                                          Text('ASSEGNA ORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
-                                            ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -1147,7 +1231,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Drivers Cards List
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -1194,6 +1277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   itemBuilder: (context, index) {
                     final order = deliveryOrders[index];
                     final assignedDriver = _getDriverFromOrder(order);
+                    final isBatched = _isOrderBatched(order);
 
                     return Card(
                       color: const Color(0xFF2E2A27),
@@ -1227,33 +1311,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  assignedDriver != null ? '🛵 $assignedDriver' : '⚠️ NON ASSEGNATO',
-                                  style: TextStyle(
-                                    color: assignedDriver != null ? Colors.cyanAccent : Colors.amber,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                PopupMenuButton<String>(
-                                  color: const Color(0xFF1C1917),
-                                  onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
-                                  itemBuilder: (context) {
-                                    return drivers.map((d) {
-                                      return PopupMenuItem<String>(
-                                        value: d,
-                                        child: Text(d, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                      );
-                                    }).toList();
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEA580C),
-                                      borderRadius: BorderRadius.circular(6),
+                                Row(
+                                  children: [
+                                    Text(
+                                      assignedDriver != null ? '🛵 $assignedDriver' : '⚠️ NON ASSEGNATO',
+                                      style: TextStyle(
+                                        color: assignedDriver != null ? Colors.cyanAccent : Colors.amber,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                    child: const Text('ASSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                                  ),
+                                    if (isBatched) ...[
+                                      const SizedBox(width: 6),
+                                      const Text('📦 DOPPIA', style: TextStyle(color: Colors.purpleAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    if (isBatched)
+                                      IconButton(
+                                        icon: const Icon(Icons.content_cut, color: Colors.redAccent, size: 18),
+                                        onPressed: () => _unbatchOrder(order),
+                                        tooltip: 'Dividi Ordini',
+                                      ),
+                                    PopupMenuButton<String>(
+                                      color: const Color(0xFF1C1917),
+                                      onSelected: (selectedDriver) => _assignDriverToOrder(order, selectedDriver),
+                                      itemBuilder: (context) {
+                                        return drivers.map((d) {
+                                          return PopupMenuItem<String>(
+                                            value: d,
+                                            child: Text(d, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                          );
+                                        }).toList();
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEA580C),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text('ASSEGNA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -1951,6 +2053,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isDelivery = order.deliveryType == 'delivery';
     final shortId = order.id.length > 8 ? order.id.substring(0, 8).toUpperCase() : order.id.toUpperCase();
     final driverName = _getDriverFromOrder(order);
+    final isBatched = _isOrderBatched(order);
     final availableDrivers = getExtractedDrivers();
 
     return SingleChildScrollView(
@@ -1985,6 +2088,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 24),
 
+          if (isBatched) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.purple.shade900.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purpleAccent),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '📦 DOPPIA CONSEGNA ABBINATA IN ZONA',
+                          style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          order.notes ?? 'Stessa direzione (~500m)',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+                    icon: const Icon(Icons.content_cut, size: 16, color: Colors.white),
+                    label: const Text('DIVIDI ORDINI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                    onPressed: () => _unbatchOrder(order),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -2007,7 +2150,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   valueColor: isDelivery ? const Color(0xFFFACC15) : Colors.greenAccent,
                 ),
 
-                // Driver Assignment Selector Row inside Details
                 if (isDelivery) ...[
                   const SizedBox(height: 12),
                   const Divider(color: Colors.white10),

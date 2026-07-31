@@ -19,12 +19,70 @@ export async function POST(request: Request) {
         'Fattorino';
       const message = callbackQuery.message;
 
-      if (dataStr.startsWith('claim:')) {
+      // Handle Double Delivery Batch Claim
+      if (dataStr.startsWith('claim_batch:')) {
+        const parts = dataStr.split(':');
+        const batchId = parts[1] || 'BATCH';
+        const orderId1 = parts[2];
+        const orderId2 = parts[3];
+
+        const targetIds = [orderId1, orderId2].filter(Boolean);
+
+        if (targetIds.length > 0) {
+          await supabase
+            .from('orders')
+            .update({
+              status: 'delivering',
+              notes: `Fattorino: ${driverName.toUpperCase()} (Doppia #${batchId})`,
+            })
+            .in('id', targetIds);
+        }
+
+        if (botToken) {
+          await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              callback_query_id: callbackId,
+              text: `🔒 DOPPIA CONSEGNA presi in carico da ${driverName}! Buon viaggio.`,
+              show_alert: true,
+            }),
+          }).catch(console.error);
+
+          if (message && message.message_id) {
+            const originalText = message.text || '';
+            const updatedText =
+              originalText.replace(
+                '🟢 *STATO:* *PRONTO PER PRESA IN CARICO DOPPIA*',
+                `🔒 *PRENOTATO DA:* *${driverName.toUpperCase()}* 🛵 (DOPPIA CONSEGNA)`
+              ) + `\n\n🔒 *PRENOTATO IN SIMULTANEA DA:* ${driverName}`;
+
+            await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: message.chat.id,
+                message_id: message.message_id,
+                text: updatedText,
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: `🔒 DOPPIA PRENOTATA DA ${driverName.toUpperCase()}`,
+                        callback_data: 'claimed_done',
+                      },
+                    ],
+                  ],
+                },
+              }),
+            }).catch(console.error);
+          }
+        }
+      } else if (dataStr.startsWith('claim:')) {
         const parts = dataStr.split(':');
         const orderId = parts[1];
-        const shortId = parts[2] || 'ORD';
 
-        // Update status and save driver name into notes in Supabase
         if (orderId) {
           await supabase
             .from('orders')
@@ -35,7 +93,6 @@ export async function POST(request: Request) {
             .eq('id', orderId);
         }
 
-        // 1. Answer Telegram popup alert to the driver
         if (botToken) {
           await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
             method: 'POST',
@@ -47,14 +104,13 @@ export async function POST(request: Request) {
             }),
           }).catch(console.error);
 
-          // 2. Edit Telegram message text to lock and mark as claimed
           if (message && message.message_id) {
             const originalText = message.text || '';
             const updatedText =
               originalText.replace(
                 '🟢 *STATO:* *DISPONIBILE PER LA CONSEGNA*',
                 `🔒 *PRENOTATO DA:* *${driverName.toUpperCase()}* 🛵`
-              ) + `\n\n🔒 *PRENOTATO IN SIMULTANEA DA:* ${driverName} (Pulsante disattivato)`;
+              ) + `\n\n🔒 *PRENOTATO IN SIMULTANEA DA:* ${driverName}`;
 
             await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
               method: 'POST',
