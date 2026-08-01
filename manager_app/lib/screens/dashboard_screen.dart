@@ -43,15 +43,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _selectedArchiveDay;
   OrderModel? _selectedArchiveOrder;
 
-  // Custom added driver roster list
-  final List<String> _customDrivers = ['Marco', 'Luca', 'Giovanni', 'Giuseppe', 'Andrea'];
+  // Telegram owner and dynamic fetched riders list (NO HARDCODED NAMES)
+  String _ownerName = 'Eraldo Caracciolo';
+  List<String> _telegramFetchedRiders = [];
+  final List<String> _customDrivers = [];
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
     _loadShiftSettings();
+    _loadTelegramRiders();
     _setupRealtimeListener();
+  }
+
+  Future<void> _loadTelegramRiders() async {
+    try {
+      final res = await _orderService.fetchTelegramRiders();
+      if (res['owner'] != null && res['owner']['name'] != null) {
+        _ownerName = res['owner']['name'] as String;
+      }
+      if (res['riders'] != null && res['riders'] is List) {
+        final List list = res['riders'] as List;
+        final names = list
+            .map((r) => r['name'].toString().toUpperCase())
+            .where((n) => n.isNotEmpty)
+            .toList();
+        if (mounted) {
+          setState(() {
+            _telegramFetchedRiders = names;
+          });
+        }
+      }
+    } catch (e) {
+      consoleLog('Error loading telegram riders: $e');
+    }
   }
 
   // Load orders from Supabase initially
@@ -342,16 +368,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<String> getExtractedDrivers() {
     final Set<String> drivers = {};
-    for (final driver in _customDrivers) {
-      drivers.add(driver.toUpperCase());
+    final ownerUpper = _ownerName.toUpperCase();
+
+    for (final driver in _telegramFetchedRiders) {
+      final clean = driver.toUpperCase();
+      if (clean.isNotEmpty && !clean.contains(ownerUpper) && !ownerUpper.contains(clean)) {
+        drivers.add(clean);
+      }
     }
 
     for (final order in _orders) {
       final driver = _getDriverFromOrder(order);
       if (driver != null && driver.isNotEmpty) {
-        drivers.add(driver.toUpperCase());
+        final clean = driver.toUpperCase();
+        if (!clean.contains(ownerUpper) && !ownerUpper.contains(clean)) {
+          drivers.add(clean);
+        }
       }
     }
+
+    for (final driver in _customDrivers) {
+      final clean = driver.toUpperCase();
+      if (clean.isNotEmpty && !clean.contains(ownerUpper) && !ownerUpper.contains(clean)) {
+        drivers.add(clean);
+      }
+    }
+
     return drivers.toList()..sort();
   }
 
@@ -1275,9 +1317,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(color: Color(0xFFFACC15), fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.1),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'Presa in carico da Telegram, abbinamento vicino (~500m) e compenso provvigioni (€${_riderFeePerDelivery.toStringAsFixed(2)}/cons).',
-                    style: const TextStyle(color: Colors.white60, fontSize: 14),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEA580C).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFEA580C)),
+                        ),
+                        child: Text(
+                          '📲 Sincronizzato con Gruppo Telegram • Proprietario ($_ownerName) escluso',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

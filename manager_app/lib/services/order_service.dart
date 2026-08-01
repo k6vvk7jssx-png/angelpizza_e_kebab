@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/order_model.dart';
 
@@ -16,6 +18,32 @@ class OrderService {
 
     final List<dynamic> data = response as List<dynamic>;
     return data.map((json) => OrderModel.fromJson(json as Map<String, dynamic>)).toList();
+  }
+
+  // Fetch dynamic real Telegram group members (excluding bots and owner)
+  Future<Map<String, dynamic>> fetchTelegramRiders() async {
+    try {
+      final res = await http.get(Uri.parse('https://angelpizza-e-kebab.vercel.app/api/telegram-riders'));
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      // Fallback network error
+    }
+
+    // Secondary fallback directly from Supabase telegram_riders table
+    try {
+      final dbRiders = await _client.from('telegram_riders').select();
+      return {
+        'owner': {'name': 'Eraldo Caracciolo'},
+        'riders': (dbRiders as List<dynamic>).map((r) => {'name': r['name']}).toList(),
+      };
+    } catch (e) {
+      return {
+        'owner': {'name': 'Eraldo Caracciolo'},
+        'riders': [],
+      };
+    }
   }
 
   // Update status of a specific order

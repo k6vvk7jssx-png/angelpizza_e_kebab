@@ -8,6 +8,25 @@ export async function POST(request: Request) {
       process.env.TELEGRAM_BOT_TOKEN ||
       process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN;
 
+    // Register or update Telegram group member in Supabase DB
+    const userFrom = body.callback_query?.from || body.message?.from;
+    if (userFrom && !userFrom.is_bot) {
+      const telegramId = userFrom.id?.toString();
+      const riderName = [userFrom.first_name, userFrom.last_name].filter(Boolean).join(' ').trim().toUpperCase();
+      const username = userFrom.username ? `@${userFrom.username}` : undefined;
+
+      try {
+        await supabase.from('telegram_riders').upsert({
+          telegram_id: telegramId,
+          name: riderName,
+          username: username,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        // Table fallback
+      }
+    }
+
     // Handle Callback Query (Button Clicks on Telegram)
     if (body.callback_query) {
       const callbackQuery = body.callback_query;
