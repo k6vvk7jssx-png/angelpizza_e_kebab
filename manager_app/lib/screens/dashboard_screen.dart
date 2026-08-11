@@ -752,7 +752,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 850;
+    final isMobile = screenWidth < 1024;
+    final isSmallScreen = screenWidth < 1180;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1C1917),
@@ -760,8 +761,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: const Color(0xFFEA580C),
         elevation: 2,
         title: Text(
-          isMobile ? 'ANGELS GESTIONALE' : 'ANGELS LIVORNO - GESTIONALE',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0, fontSize: 16),
+          isSmallScreen ? 'ANGELS GESTIONALE' : 'ANGELS LIVORNO - GESTIONALE',
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5, fontSize: 15),
         ),
         actions: [
           IconButton(
@@ -769,7 +771,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: _loadInitialData,
             tooltip: 'Ricarica Dati',
           ),
-          if (isMobile)
+          if (isSmallScreen)
             IconButton(
               icon: const Icon(Icons.volume_off, color: Color(0xFFFACC15)),
               onPressed: () => _notificationManager.stopOrderAlarm(),
@@ -1066,11 +1068,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: activeOrders.isEmpty
                 ? const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(24.0),
+                      padding: EdgeInsets.all(16.0),
                       child: Text(
                         'Nessun ordine attivo per il turno di oggi.\nGli ordini dei clienti compariranno qui in tempo reale.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white60, fontSize: 16, height: 1.4),
+                        softWrap: true,
+                        style: TextStyle(color: Colors.white60, fontSize: 14, height: 1.4),
                       ),
                     ),
                   )
@@ -1161,9 +1164,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           flex: 6,
           child: _selectedOrder == null
               ? const Center(
-                  child: Text(
-                    'Seleziona un ordine per visualizzare i dettagli',
-                    style: TextStyle(color: Colors.white60, fontSize: 16),
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'Seleziona un ordine per visualizzare i dettagli',
+                      textAlign: TextAlign.center,
+                      softWrap: true,
+                      style: TextStyle(color: Colors.white60, fontSize: 14),
+                    ),
                   ),
                 )
               : _buildOrderDetailsPane(_selectedOrder!),
