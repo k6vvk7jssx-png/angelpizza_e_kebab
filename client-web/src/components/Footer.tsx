@@ -15,7 +15,7 @@ export default function Footer({
       <div className={styles.footerContainer}>
         <div className={styles.footerInfo}>
           <h3>Angels Livorno</h3>
-          <p>Pizzeria Artigianale, Kebab Fast Food & Ristorante Etnico.</p>
+          <p>Pizzeria Artigianale, Kebab Fast Food &amp; Ristorante Etnico.</p>
           <p>Ingredienti freschi di prima scelta e cottura nel nostro forno.</p>
 
           <div style={{ marginTop: '1rem' }}>
@@ -24,22 +24,23 @@ export default function Footer({
               target="_blank"
               rel="noopener noreferrer"
               className={styles.googleReviewBtn}
+              aria-label="Valuta il Locale su Google (apre in una nuova scheda)"
             >
-              ⭐ Valuta il Locale su Google
+              <span aria-hidden="true">⭐</span> Valuta il Locale su Google
             </a>
           </div>
         </div>
 
         <div className={styles.footerInfo}>
-          <h3>Orari & Contatti</h3>
-          <p>📍 Piazza Mazzini 82/83 - Livorno (LI)</p>
+          <h3>Orari &amp; Contatti</h3>
+          <p><span aria-hidden="true">📍</span> Piazza Mazzini 82/83 - Livorno (LI)</p>
           <p>
-            📞 Ordini Telefonici:{' '}
-            <a href="tel:0586996524" target="_blank" rel="noopener noreferrer">
+            <span aria-hidden="true">📞</span> Ordini Telefonici:{' '}
+            <a href="tel:0586996524" className={styles.phoneLink}>
               0586 99 65 24
             </a>
           </p>
-          <p>⏰ Aperto tutti i giorni dalle 12:00 alle 24:00</p>
+          <p><span aria-hidden="true">⏰</span> Aperto tutti i giorni dalle 12:00 alle 24:00</p>
         </div>
       </div>
 

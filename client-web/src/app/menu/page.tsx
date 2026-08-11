@@ -348,28 +348,37 @@ export default function MenuPage() {
             </div>
 
             <form onSubmit={handleCheckoutSubmit}>
-              <div className={styles.tabToggleGroup}>
-                <div
+              <div className={styles.tabToggleGroup} role="tablist" aria-label="Modalità checkout">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={checkoutMode === 'guest'}
                   onClick={() => setCheckoutMode('guest')}
                   className={`${styles.deliveryTab} ${checkoutMode === 'guest' ? styles.deliveryTabActive : ''}`}
                 >
                   ⚡ Ordine Rapido
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={checkoutMode === 'login'}
                   onClick={() => setCheckoutMode('login')}
                   className={`${styles.deliveryTab} ${checkoutMode === 'login' ? styles.deliveryTabActive : ''}`}
                 >
                   📲 Accedi / OTP
-                </div>
+                </button>
               </div>
 
               {checkoutMode === 'guest' ? (
                 <>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Nome Completo *</label>
+                    <label htmlFor="guest-name-input" className={styles.formLabel}>Nome Completo *</label>
                     <input
+                      id="guest-name-input"
+                      name="name"
                       type="text"
                       required
+                      autoComplete="name"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="Es. Mario Rossi"
@@ -378,10 +387,13 @@ export default function MenuPage() {
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Telefono (per la consegna) *</label>
+                    <label htmlFor="guest-phone-input" className={styles.formLabel}>Telefono (per la consegna) *</label>
                     <input
+                      id="guest-phone-input"
+                      name="phone"
                       type="tel"
                       required
+                      autoComplete="tel"
                       value={guestPhone}
                       onChange={(e) => setGuestPhone(e.target.value)}
                       placeholder="Es. 333 1234567"
@@ -391,28 +403,37 @@ export default function MenuPage() {
 
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Modalità di Ricezione</label>
-                    <div className={styles.tabToggleGroup}>
-                      <div
+                    <div className={styles.tabToggleGroup} role="tablist" aria-label="Modalità di ricezione">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={deliveryType === 'delivery'}
                         onClick={() => setDeliveryType('delivery')}
                         className={`${styles.deliveryTab} ${deliveryType === 'delivery' ? styles.deliveryTabActive : ''}`}
                       >
                         🛵 Domicilio
-                      </div>
-                      <div
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={deliveryType === 'pickup'}
                         onClick={() => setDeliveryType('pickup')}
                         className={`${styles.deliveryTab} ${deliveryType === 'pickup' ? styles.deliveryTabActive : ''}`}
                       >
                         🛍️ Asporto
-                      </div>
+                      </button>
                     </div>
                   </div>
 
                   {deliveryType === 'delivery' && (
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
+                      <label htmlFor="guest-address-input" className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
                       <input
+                        id="guest-address-input"
+                        name="address"
                         type="text"
                         required
+                        autoComplete="street-address"
                         value={guestAddress}
                         onChange={(e) => setGuestAddress(e.target.value)}
                         placeholder="Es. Via Grande 45, Piano 2"
@@ -422,8 +443,10 @@ export default function MenuPage() {
                   )}
 
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Orario desiderato</label>
+                    <label htmlFor="selected-time-select" className={styles.formLabel}>Orario desiderato</label>
                     <select
+                      id="selected-time-select"
+                      name="selectedTime"
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
                       className={styles.formSelect}
@@ -440,10 +463,13 @@ export default function MenuPage() {
               ) : (
                 <>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Numero di Telefono *</label>
+                    <label htmlFor="otp-phone-input" className={styles.formLabel}>Numero di Telefono *</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
+                        id="otp-phone-input"
+                        name="phone"
                         type="tel"
+                        autoComplete="tel"
                         value={otpPhone}
                         onChange={(e) => setOtpPhone(e.target.value)}
                         placeholder="Es. 333 1234567"
@@ -462,9 +488,14 @@ export default function MenuPage() {
 
                   {otpSent && (
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Codice OTP Ricevuto *</label>
+                      <label htmlFor="otp-code-input" className={styles.formLabel}>Codice OTP Ricevuto *</label>
                       <input
+                        id="otp-code-input"
+                        name="otpCode"
                         type="text"
+                        inputMode="numeric"
+                        spellCheck={false}
+                        autoComplete="one-time-code"
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value)}
                         placeholder="Es. 123456"
@@ -478,12 +509,13 @@ export default function MenuPage() {
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Metodo di Pagamento</label>
                 <div className={styles.paymentMethodContainer}>
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setPaymentMethod('cod')}
                     className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.paymentOptionActive : ''}`}
                   >
                     💵 Contanti alla Consegna
-                  </div>
+                  </button>
                 </div>
               </div>
 
@@ -493,7 +525,7 @@ export default function MenuPage() {
                   disabled={isSubmitting}
                   className={styles.submitBtn}
                 >
-                  {isSubmitting ? 'Invio in corso...' : `Conferma Ordine (€${cartTotal.toFixed(2)})`}
+                  {isSubmitting ? 'Invio in corso…' : `Conferma Ordine (€${cartTotal.toFixed(2)})`}
                 </button>
               </div>
             </form>
@@ -514,7 +546,7 @@ export default function MenuPage() {
         <div className={styles.menuColumn}>
           <div style={{ marginBottom: '1rem' }}>
             <h1 className={styles.heroTitle} style={{ color: '#0f172a', fontSize: '2rem' }}>
-              Menu Completo Pizzeria & Kebab
+              Menu Completo Pizzeria &amp; Kebab
             </h1>
             <p className={styles.heroSubtitle} style={{ color: '#64748b' }}>
               Seleziona i piatti desiderati per aggiungere al carrello ed ordinare a domicilio o per asporto.
@@ -537,28 +569,38 @@ export default function MenuPage() {
 
       {/* Floating Bottom Bar for Mobile */}
       {cartItemCount > 0 && !isCartOpen && (
-        <div className={styles.floatingBottomBar} onClick={() => setIsCartOpen(true)}>
+        <button
+          type="button"
+          className={styles.floatingBottomBar}
+          onClick={() => setIsCartOpen(true)}
+          aria-label={`Vedi ordine (${cartItemCount} articoli, totale €${cartTotal.toFixed(2)})`}
+        >
           <div className={styles.bottomBarLeft}>
             <span className={styles.bottomBarBadge}>{cartItemCount}</span>
             <span className={styles.bottomBarText}>Vedi Ordine</span>
           </div>
           <div className={styles.bottomBarRight}>
             <span>€{cartTotal.toFixed(2)}</span>
-            <span className={styles.bottomBarArrow}>→</span>
+            <span className={styles.bottomBarArrow} aria-hidden="true">→</span>
           </div>
-        </div>
+        </button>
       )}
 
       {/* Mobile Cart Overlay */}
       {isCartOpen && (
         <div className={styles.mobileCartOverlay} onClick={() => setIsCartOpen(false)}>
-          <div className={styles.mobileCartDrawer} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.mobileCartDrawer} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Carrello e checkout">
             <div className={styles.drawerHeader}>
               <div className={styles.drawerHeaderTitle}>
                 <span>🛒 Il Tuo Carrello</span>
                 <span className={styles.drawerHeaderBadge}>{cartItemCount} articoli</span>
               </div>
-              <button onClick={() => setIsCartOpen(false)} className={styles.closeDrawerBtn}>
+              <button
+                type="button"
+                onClick={() => setIsCartOpen(false)}
+                className={styles.closeDrawerBtn}
+                aria-label="Chiudi carrello"
+              >
                 ✕
               </button>
             </div>

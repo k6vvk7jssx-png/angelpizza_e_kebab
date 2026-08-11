@@ -81,7 +81,7 @@ export default function MenuCatalog({
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner}></div>
-        <p>Caricamento delle pietanze golose...</p>
+        <p>Caricamento delle pietanze golose…</p>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function MenuCatalog({
           )}
 
           <div className={styles.cardPriceRow}>
-            <span className={styles.cardPrice}>
+            <span className={styles.cardPrice} style={{ fontVariantNumeric: 'tabular-nums' }}>
               €{Number(item.price).toFixed(2)}
             </span>
           </div>
@@ -128,11 +128,13 @@ export default function MenuCatalog({
             <img
               src={item.image_path}
               alt={item.name}
+              width={100}
+              height={100}
               className={styles.cardImage}
               loading="lazy"
             />
           ) : (
-            <div className={styles.cardImagePlaceholder}>🍕</div>
+            <div className={styles.cardImagePlaceholder} aria-hidden="true">🍕</div>
           )}
 
           {/* Action button overlay or stepper */}
@@ -147,7 +149,7 @@ export default function MenuCatalog({
                 >
                   −
                 </button>
-                <span className={styles.stepperQty}>{qty}</span>
+                <span className={styles.stepperQty} style={{ fontVariantNumeric: 'tabular-nums' }}>{qty}</span>
                 <button
                   type="button"
                   onClick={() => onIncreaseQty(item.id)}
@@ -162,8 +164,9 @@ export default function MenuCatalog({
                 type="button"
                 onClick={() => onAddToCart(item)}
                 className={styles.addButton}
+                aria-label={`Aggiungi ${item.name} al carrello`}
               >
-                <span className={styles.addPlusIcon}>+</span> Aggiungi
+                <span className={styles.addPlusIcon} aria-hidden="true">+</span> Aggiungi
               </button>
             )}
           </div>
@@ -180,6 +183,7 @@ export default function MenuCatalog({
           {CATEGORIES.map((category) => (
             <button
               key={category.id}
+              type="button"
               onClick={() => setSelectedCategory(category.id)}
               className={`${styles.categoryButton} ${
                 selectedCategory === category.id
@@ -187,7 +191,7 @@ export default function MenuCatalog({
                   : ''
               }`}
             >
-              <span className={styles.categoryIcon}>{category.icon}</span>
+              <span className={styles.categoryIcon} aria-hidden="true">{category.icon}</span>
               <span>{category.name}</span>
             </button>
           ))}
@@ -207,7 +211,7 @@ export default function MenuCatalog({
               <section key={category.id} className={styles.categorySection}>
                 <div className={styles.categorySectionHeader}>
                   <h2 className={styles.categorySectionTitle}>
-                    <span className={styles.categoryTitleIcon}>
+                    <span className={styles.categoryTitleIcon} aria-hidden="true">
                       {category.icon}
                     </span>
                     {category.name}
@@ -226,9 +230,16 @@ export default function MenuCatalog({
         </div>
       ) : (
         /* Specific Category Grid View */
-        <div className={styles.categoryGrid}>
-          {filteredItems.map((item) => renderCard(item))}
-        </div>
+        filteredItems.length > 0 ? (
+          <div className={styles.categoryGrid}>
+            {filteredItems.map((item) => renderCard(item))}
+          </div>
+        ) : (
+          <div className={styles.emptyCategoryState} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
+            <span style={{ fontSize: '2.5rem' }} role="img" aria-label="Nessun prodotto">🍽️</span>
+            <p style={{ marginTop: '0.5rem', fontWeight: 500 }}>Nessun piatto disponibile in questa categoria al momento.</p>
+          </div>
+        )
       )}
     </div>
   );
