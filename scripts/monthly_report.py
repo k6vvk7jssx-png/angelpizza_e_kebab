@@ -20,11 +20,33 @@ from datetime import datetime, timedelta
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-# Credentials
-SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "https://cavxvkwixbxbdvaasxpa.supabase.co")
-SUPABASE_KEY = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "sb_publishable_Sz5cqHM7sIpKGxOcgCWkTQ_8deGQEGt")
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8709724466:AAHcG2xWci06UNcQO3arR7M9L6qCHmQAsvw")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "-1004392822384")
+def load_env_vars():
+    """Dynamically load environment variables from .env or client-web/.env.local if present."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env_paths = [
+        os.path.join(base_dir, "client-web", ".env.local"),
+        os.path.join(base_dir, ".env.local"),
+        os.path.join(base_dir, ".env"),
+    ]
+    for env_path in env_paths:
+        if os.path.exists(env_path):
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            k, v = line.split("=", 1)
+                            os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+            except Exception:
+                pass
+
+load_env_vars()
+
+# Credentials (read strictly from environment variables)
+SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 def get_monthly_report():
     """Query orders for the current month from Supabase."""
