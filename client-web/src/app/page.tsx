@@ -364,28 +364,37 @@ export default function Home() {
             </div>
 
             <form onSubmit={handleCheckoutSubmit}>
-              <div className={styles.tabToggleGroup}>
-                <div
+              <div className={styles.tabToggleGroup} role="tablist" aria-label="Modalità checkout">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={checkoutMode === 'guest'}
                   onClick={() => setCheckoutMode('guest')}
                   className={`${styles.deliveryTab} ${checkoutMode === 'guest' ? styles.deliveryTabActive : ''}`}
                 >
                   ⚡ Ordine Rapido
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={checkoutMode === 'login'}
                   onClick={() => setCheckoutMode('login')}
                   className={`${styles.deliveryTab} ${checkoutMode === 'login' ? styles.deliveryTabActive : ''}`}
                 >
                   📲 Accedi / OTP
-                </div>
+                </button>
               </div>
 
               {checkoutMode === 'guest' ? (
                 <>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Nome Completo *</label>
+                    <label htmlFor="home-guest-name" className={styles.formLabel}>Nome Completo *</label>
                     <input
+                      id="home-guest-name"
+                      name="name"
                       type="text"
                       required
+                      autoComplete="name"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="Es. Mario Rossi"
@@ -394,10 +403,15 @@ export default function Home() {
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Telefono (per la consegna) *</label>
+                    <label htmlFor="home-guest-phone" className={styles.formLabel}>
+                      {deliveryType === 'delivery' ? 'Telefono (per la consegna) *' : 'Telefono (per avviso sul ritiro) *'}
+                    </label>
                     <input
+                      id="home-guest-phone"
+                      name="phone"
                       type="tel"
                       required
+                      autoComplete="tel"
                       value={guestPhone}
                       onChange={(e) => setGuestPhone(e.target.value)}
                       placeholder="Es. 333 1234567"
@@ -407,44 +421,63 @@ export default function Home() {
 
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Modalità di Ricezione</label>
-                    <div className={styles.tabToggleGroup}>
-                      <div
+                    <div className={styles.tabToggleGroup} role="tablist" aria-label="Modalità di ricezione">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={deliveryType === 'delivery'}
                         onClick={() => setDeliveryType('delivery')}
                         className={`${styles.deliveryTab} ${deliveryType === 'delivery' ? styles.deliveryTabActive : ''}`}
                       >
                         🛵 Domicilio
-                      </div>
-                      <div
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={deliveryType === 'pickup'}
                         onClick={() => setDeliveryType('pickup')}
                         className={`${styles.deliveryTab} ${deliveryType === 'pickup' ? styles.deliveryTabActive : ''}`}
                       >
-                        🛍️ Asporto
-                      </div>
+                        🛍️ Asporto / Ritiro
+                      </button>
                     </div>
                   </div>
 
-                  {deliveryType === 'delivery' && (
+                  {deliveryType === 'delivery' ? (
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
+                      <label htmlFor="home-guest-address" className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
                       <input
+                        id="home-guest-address"
+                        name="address"
                         type="text"
                         required
+                        autoComplete="street-address"
                         value={guestAddress}
                         onChange={(e) => setGuestAddress(e.target.value)}
                         placeholder="Es. Via Grande 45, Piano 2"
                         className={styles.formInput}
                       />
                     </div>
+                  ) : (
+                    <div className={styles.formGroup} style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.88rem', color: '#475569' }}>
+                      <strong>📍 Punto di Ritiro:</strong> Angels Pizzeria &amp; Kebab, Piazza Mazzini 82/83 - Livorno
+                    </div>
                   )}
 
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Orario desiderato</label>
+                    <label htmlFor="home-selected-time" className={styles.formLabel}>
+                      {deliveryType === 'delivery' ? 'Orario di Consegna Desiderato' : 'Orario di Ritiro in Pizzeria'}
+                    </label>
                     <select
+                      id="home-selected-time"
+                      name="selectedTime"
                       value={selectedTime}
                       onChange={(e) => setSelectedTime(e.target.value)}
                       className={styles.formSelect}
                     >
-                      <option value="asap">⚡ Prima possibile (~30-40 min)</option>
+                      <option value="asap">
+                        {deliveryType === 'delivery' ? '⚡ Prima possibile (~30-40 min)' : '⚡ Prima possibile (~15-25 min)'}
+                      </option>
                       {getTimeSlots().map((slot) => (
                         <option key={slot} value={slot}>
                           🕒 {slot}
@@ -456,10 +489,13 @@ export default function Home() {
               ) : (
                 <>
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Numero di Telefono *</label>
+                    <label htmlFor="home-otp-phone" className={styles.formLabel}>Numero di Telefono *</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
+                        id="home-otp-phone"
+                        name="phone"
                         type="tel"
+                        autoComplete="tel"
                         value={otpPhone}
                         onChange={(e) => setOtpPhone(e.target.value)}
                         placeholder="Es. 333 1234567"
@@ -478,9 +514,14 @@ export default function Home() {
 
                   {otpSent && (
                     <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Codice OTP Ricevuto *</label>
+                      <label htmlFor="home-otp-code" className={styles.formLabel}>Codice OTP Ricevuto *</label>
                       <input
+                        id="home-otp-code"
+                        name="otpCode"
                         type="text"
+                        inputMode="numeric"
+                        spellCheck={false}
+                        autoComplete="one-time-code"
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value)}
                         placeholder="Es. 123456"
@@ -494,12 +535,13 @@ export default function Home() {
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Metodo di Pagamento</label>
                 <div className={styles.paymentMethodContainer}>
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setPaymentMethod('cod')}
                     className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.paymentOptionActive : ''}`}
                   >
-                    💵 Contanti alla Consegna
-                  </div>
+                    {deliveryType === 'delivery' ? '💵 Contanti alla Consegna' : '💵 Contanti / Carta al Ritiro in Cassa'}
+                  </button>
                 </div>
               </div>
 

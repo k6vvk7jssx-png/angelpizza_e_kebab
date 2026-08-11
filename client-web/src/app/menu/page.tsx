@@ -387,7 +387,9 @@ export default function MenuPage() {
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label htmlFor="guest-phone-input" className={styles.formLabel}>Telefono (per la consegna) *</label>
+                    <label htmlFor="guest-phone-input" className={styles.formLabel}>
+                      {deliveryType === 'delivery' ? 'Telefono (per la consegna) *' : 'Telefono (per avviso sul ritiro) *'}
+                    </label>
                     <input
                       id="guest-phone-input"
                       name="phone"
@@ -420,12 +422,12 @@ export default function MenuPage() {
                         onClick={() => setDeliveryType('pickup')}
                         className={`${styles.deliveryTab} ${deliveryType === 'pickup' ? styles.deliveryTabActive : ''}`}
                       >
-                        🛍️ Asporto
+                        🛍️ Asporto / Ritiro
                       </button>
                     </div>
                   </div>
 
-                  {deliveryType === 'delivery' && (
+                  {deliveryType === 'delivery' ? (
                     <div className={styles.formGroup}>
                       <label htmlFor="guest-address-input" className={styles.formLabel}>Indirizzo di Consegna (Livorno) *</label>
                       <input
@@ -440,10 +442,16 @@ export default function MenuPage() {
                         className={styles.formInput}
                       />
                     </div>
+                  ) : (
+                    <div className={styles.formGroup} style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.88rem', color: '#475569' }}>
+                      <strong>📍 Punto di Ritiro:</strong> Angels Pizzeria &amp; Kebab, Piazza Mazzini 82/83 - Livorno
+                    </div>
                   )}
 
                   <div className={styles.formGroup}>
-                    <label htmlFor="selected-time-select" className={styles.formLabel}>Orario desiderato</label>
+                    <label htmlFor="selected-time-select" className={styles.formLabel}>
+                      {deliveryType === 'delivery' ? 'Orario di Consegna Desiderato' : 'Orario di Ritiro in Pizzeria'}
+                    </label>
                     <select
                       id="selected-time-select"
                       name="selectedTime"
@@ -451,7 +459,9 @@ export default function MenuPage() {
                       onChange={(e) => setSelectedTime(e.target.value)}
                       className={styles.formSelect}
                     >
-                      <option value="asap">⚡ Prima possibile (~30-40 min)</option>
+                      <option value="asap">
+                        {deliveryType === 'delivery' ? '⚡ Prima possibile (~30-40 min)' : '⚡ Prima possibile (~15-25 min)'}
+                      </option>
                       {getTimeSlots().map((slot) => (
                         <option key={slot} value={slot}>
                           🕒 {slot}
@@ -514,7 +524,7 @@ export default function MenuPage() {
                     onClick={() => setPaymentMethod('cod')}
                     className={`${styles.paymentOption} ${paymentMethod === 'cod' ? styles.paymentOptionActive : ''}`}
                   >
-                    💵 Contanti alla Consegna
+                    {deliveryType === 'delivery' ? '💵 Contanti alla Consegna' : '💵 Contanti / Carta al Ritiro in Cassa'}
                   </button>
                 </div>
               </div>
