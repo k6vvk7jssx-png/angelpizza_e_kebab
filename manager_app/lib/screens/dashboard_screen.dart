@@ -773,19 +773,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           if (isSmallScreen)
             IconButton(
-              icon: const Icon(Icons.volume_off, color: Color(0xFFFACC15)),
-              onPressed: () => _notificationManager.stopOrderAlarm(),
-              tooltip: 'Silenzia Allarme',
+              icon: Icon(
+                _notificationManager.isAlarmPlaying ? Icons.notifications_active : Icons.notifications,
+                color: _notificationManager.isAlarmPlaying ? const Color(0xFFEF4444) : const Color(0xFFFACC15),
+              ),
+              onPressed: () async {
+                await _notificationManager.toggleOrderAlarm();
+                if (mounted) setState(() {});
+              },
+              tooltip: _notificationManager.isAlarmPlaying ? 'Silenzia Allarme' : 'Testa Suono Allarme',
             )
           else
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFACC15),
-                foregroundColor: Colors.black,
+                backgroundColor: _notificationManager.isAlarmPlaying ? const Color(0xFFEF4444) : const Color(0xFFFACC15),
+                foregroundColor: _notificationManager.isAlarmPlaying ? Colors.white : Colors.black,
               ),
-              icon: const Icon(Icons.volume_off, size: 18),
-              label: const Text('SILENZIA ALLARME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              onPressed: () => _notificationManager.stopOrderAlarm(),
+              icon: Icon(
+                _notificationManager.isAlarmPlaying ? Icons.notifications_active : Icons.notifications,
+                size: 18,
+              ),
+              label: Text(
+                _notificationManager.isAlarmPlaying ? 'SILENZIA ALLARME 🔊' : 'TESTA SUONO 🔔',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              onPressed: () async {
+                await _notificationManager.toggleOrderAlarm();
+                if (mounted) setState(() {});
+              },
             ),
           const SizedBox(width: 4),
           IconButton(
@@ -2239,6 +2254,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
+          _buildProductSummarySection(isMobile: false),
         ],
       ),
     );
@@ -2350,6 +2366,305 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: _buildRevenueChart(chartData),
+                ),
+              ],
+            ),
+          ),
+          _buildProductSummarySection(isMobile: true),
+        ],
+      ),
+    );
+  }
+
+  // WIDGET: RESOCONTO PRODOTTI & METRICHE VENDITA
+  Widget _buildProductSummarySection({bool isMobile = false}) {
+    final relevantOrders = _orders.where((o) => o.status != 'cancelled').toList();
+
+    final Map<String, int> productQtyMap = {};
+    final Map<String, double> productRevenueMap = {};
+    int deliveryCount = 0;
+    int pickupCount = 0;
+    double deliveryRevenue = 0.0;
+    double pickupRevenue = 0.0;
+
+    for (final order in relevantOrders) {
+      if (order.deliveryType == 'delivery') {
+        deliveryCount++;
+        deliveryRevenue += order.totalPrice;
+      } else {
+        pickupCount++;
+        pickupRevenue += order.totalPrice;
+      }
+
+      for (final item in order.items) {
+        final Map<String, dynamic> itemMap = (item is Map) ? Map<String, dynamic>.from(item) : {};
+        final name = (itemMap['name'] ?? itemMap['title'] ?? 'Piatto Generico').toString();
+        final qty = int.tryParse((itemMap['qty'] ?? itemMap['quantity'] ?? 1).toString()) ?? 1;
+        final price = double.tryParse((itemMap['price_at_order'] ?? itemMap['price'] ?? 0).toString()) ?? 0.0;
+
+        productQtyMap[name] = (productQtyMap[name] ?? 0) + qty;
+        productRevenueMap[name] = (productRevenueMap[name] ?? 0) + (price * qty);
+      }
+    }
+
+    final sortedProducts = productQtyMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final maxQtySold = sortedProducts.isNotEmpty ? sortedProducts.first.value : 1;
+    final totalOrders = deliveryCount + pickupCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 30),
+        Row(
+          children: [
+            const Icon(Icons.analytics, color: Color(0xFFFACC15), size: 24),
+            const SizedBox(width: 10),
+            Text(
+              'RESOCONTO PRODOTTI E METRICHE DI VENDITA',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: isMobile ? 15 : 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (!isMobile)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: _buildTopProductsCard(sortedProducts, productRevenueMap, maxQtySold),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                flex: 2,
+                child: _buildDeliveryMetricsCard(
+                  deliveryCount: deliveryCount,
+                  pickupCount: pickupCount,
+                  deliveryRevenue: deliveryRevenue,
+                  pickupRevenue: pickupRevenue,
+                  totalOrders: totalOrders,
+                ),
+              ),
+            ],
+          )
+        else
+          Column(
+            children: [
+              _buildTopProductsCard(sortedProducts, productRevenueMap, maxQtySold, isMobile: true),
+              const SizedBox(height: 20),
+              _buildDeliveryMetricsCard(
+                deliveryCount: deliveryCount,
+                pickupCount: pickupCount,
+                deliveryRevenue: deliveryRevenue,
+                pickupRevenue: pickupRevenue,
+                totalOrders: totalOrders,
+                isMobile: true,
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTopProductsCard(
+    List<MapEntry<String, int>> sortedProducts,
+    Map<String, double> productRevenueMap,
+    int maxQty, {
+    bool isMobile = false,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2E2A27),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                '🏆 CLASSIFICA PIATTI PIÙ VENDUTI',
+                style: TextStyle(color: Color(0xFFEA580C), fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              Text('Ordini & Incasso', style: TextStyle(color: Colors.white54, fontSize: 11)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (sortedProducts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(
+                child: Text('Nessun dato sulle vendite disponibile.', style: TextStyle(color: Colors.white38)),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: sortedProducts.length > 8 ? 8 : sortedProducts.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final entry = sortedProducts[index];
+                final name = entry.key;
+                final qty = entry.value;
+                final revenue = productRevenueMap[name] ?? 0.0;
+                final rank = index + 1;
+                final percent = (qty / maxQty).clamp(0.0, 1.0);
+
+                String rankBadge = '#$rank';
+                if (rank == 1) rankBadge = '🥇 1°';
+                if (rank == 2) rankBadge = '🥈 2°';
+                if (rank == 3) rankBadge = '🥉 3°';
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$rankBadge  $name',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$qty venduti  ',
+                                style: const TextStyle(color: Color(0xFFFACC15), fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                              TextSpan(
+                                text: '(€${revenue.toStringAsFixed(2)})',
+                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: percent,
+                        backgroundColor: Colors.white10,
+                        color: rank == 1 ? const Color(0xFFEA580C) : (rank <= 3 ? const Color(0xFFFACC15) : Colors.amber.shade700),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeliveryMetricsCard({
+    required int deliveryCount,
+    required int pickupCount,
+    required double deliveryRevenue,
+    required double pickupRevenue,
+    required int totalOrders,
+    bool isMobile = false,
+  }) {
+    final delPercent = totalOrders > 0 ? (deliveryCount / totalOrders * 100).toStringAsFixed(0) : '0';
+    final picPercent = totalOrders > 0 ? (pickupCount / totalOrders * 100).toStringAsFixed(0) : '0';
+
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2E2A27),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            '🛵 METRICHE DI CONSEGNA',
+            style: TextStyle(color: Color(0xFFEA580C), fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+
+          // DOMICILIO CARD
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.two_wheeler, color: Color(0xFFEA580C), size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('CONSEGNA A DOMICILIO', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text('$deliveryCount Ordini ($delPercent%)', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Text(
+                  '€${deliveryRevenue.toStringAsFixed(2)}',
+                  style: const TextStyle(color: Colors.greenAccent, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ASPORTO CARD
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.blue.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.shopping_bag, color: Colors.blue, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('RITIRO AL BANCO (ASPORTO)', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text('$pickupCount Ordini ($picPercent%)', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Text(
+                  '€${pickupRevenue.toStringAsFixed(2)}',
+                  style: const TextStyle(color: Colors.greenAccent, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

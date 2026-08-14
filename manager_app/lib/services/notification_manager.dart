@@ -8,15 +8,18 @@ class NotificationManager {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isAlarmPlaying = false;
 
+  bool get isAlarmPlaying => _isAlarmPlaying;
+
   NotificationManager() {
     _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    _audioPlayer.setVolume(1.0);
   }
 
   // Play loop alarm sound from assets
   Future<void> playOrderAlarm() async {
-    if (_isAlarmPlaying) return;
     try {
       _isAlarmPlaying = true;
+      await _audioPlayer.stop();
       await _audioPlayer.play(AssetSource('sounds/alert.mp3'));
     } catch (e) {
       print('Error playing order alarm: $e');
@@ -26,12 +29,21 @@ class NotificationManager {
 
   // Stop loop alarm sound
   Future<void> stopOrderAlarm() async {
-    if (!_isAlarmPlaying) return;
     try {
       await _audioPlayer.stop();
       _isAlarmPlaying = false;
     } catch (e) {
       print('Error stopping order alarm: $e');
+      _isAlarmPlaying = false;
+    }
+  }
+
+  // Toggle order alarm sound for testing or silencing
+  Future<void> toggleOrderAlarm() async {
+    if (_isAlarmPlaying) {
+      await stopOrderAlarm();
+    } else {
+      await playOrderAlarm();
     }
   }
 
