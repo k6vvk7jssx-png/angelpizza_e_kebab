@@ -1,112 +1,64 @@
-# 🦅 Angels Pizza & Kebab — Digital Ecosystem
+# Angel Pizza & Kebab - Omni-Channel Food Delivery Platform
 
-> Piazza Mazzini 82/83, Livorno | Tel. 0586 99 65 24
+[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
+[![Flutter](https://img.shields.io/badge/Flutter-Web%2FApp-02569B.svg)](https://flutter.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Realtime-3ECF8E.svg)](https://supabase.com/)
+[![Telegram Bot API](https://img.shields.io/badge/Telegram-Bot%20API-2CA5E0.svg)](https://core.telegram.org/bots/api)
 
-Sito di ordinazione online, gestionale cucina in tempo reale e database cloud per **Angels Pizza & Kebab** — Livorno.
-
----
-
-## 📦 Struttura del Progetto
-
-```
-Angels website/
-├── client-web/          # Sito clienti (Next.js) — ordinazione online
-├── manager_app/         # App gestionale cucina (Flutter Web + Android)
-└── supabase/            # Migrazioni database (PostgreSQL + Realtime)
-```
+An end-to-end food delivery and restaurant management ecosystem integrating a customer-facing web catalog, real-time Telegram courier dispatching, and a Flutter back-office app.
 
 ---
 
-## 🌐 Sito Clienti (`client-web/`)
+## 🏗️ Architecture Overview
 
-Applicazione web **Next.js 16** per l'ordinazione online.
+```
+                      ┌───────────────────────────┐
+                      │    Customer Web App       │
+                      │  (Next.js App Router)     │
+                      └─────────────┬─────────────┘
+                                    │ Places Order
+                                    ▼
+                      ┌───────────────────────────┐
+                      │   Supabase Realtime DB    │
+                      └──────┬─────────────┬──────┘
+                             │             │
+              Order Event    │             │ Sync State
+                             ▼             ▼
+       ┌───────────────────────────┐ ┌───────────────────────────┐
+       │   Telegram Dispatch Bot   │ │   Kitchen Manager App     │
+       │ (Instant Rider Webhooks)  │ │   (Flutter / CanvasKit)   │
+       └───────────────────────────┘ └───────────────────────────┘
+```
 
-### Funzionalità
-- 🍕 Menu completo con categorie (Pizze Rosse/Bianche, Fast Food, Bibite, ecc.)
-- 🛒 Carrello interattivo con aggiunta/rimozione prodotti
-- 📍 Scelta tra Consegna a domicilio e Asporto
-- 📡 Tracking ordine in **tempo reale** (Supabase Realtime)
-- 📱 Design responsive (PC, tablet, telefono)
+---
 
-### Avvio in locale
+## ✨ Key Features
+
+* **Customer Web App (`client-web`):** Responsive digital menu, interactive cart, checkout, and address geolocation.
+* **Telegram Rider Dispatching (`telegram-notify` / `telegram-riders`):** Instant notifications sent to rider channels with interactive accept/complete order buttons.
+* **Manager & Kitchen Dashboard (`manager_web` / `manager_app`):** Flutter-based order queue with audio chime notifications (`test_bell.wav`).
+* **Sales Analytics Engine:** Python reporting scripts (`analytics_best_sellers.py`, `monthly_report.py`) for automated monthly revenue aggregation.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Web Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, Jest.
+* **Backoffice App:** Flutter (Web & Mobile CanvasKit).
+* **Database & Auth:** Supabase PostgreSQL with Realtime subscriptions.
+* **Messaging & Bot:** Telegram Bot API Webhooks.
+* **Analytics:** Python 3.
+
+---
+
+## 🧪 Testing
+
 ```bash
 cd client-web
-npm install
-npm run dev
-# → http://localhost:3000
-```
-
-### Deploy
-Il sito si aggiorna automaticamente su **Vercel** ad ogni `git push` sul ramo `main`.
-
----
-
-## 📱 Gestionale Cucina (`manager_app/`)
-
-Applicazione **Flutter** per la gestione degli ordini in cucina.
-
-### Funzionalità
-- 🔐 Login sicuro con email e password (solo admin autorizzati)
-- 🔔 Notifiche in tempo reale per nuovi ordini
-- ✅ Avanzamento stato ordine (Ricevuto → In preparazione → Pronto → Consegnato)
-- 🌐 Accessibile da browser, telefono e tablet
-
-### Avvio in locale (browser)
-```bash
-cd manager_app
-flutter run -d chrome
-```
-
-### Build Android (APK per telefono)
-```bash
-cd manager_app
-flutter build apk --release
-# File: build/app/outputs/flutter-apk/app-release.apk
+npm test
 ```
 
 ---
 
-## 🗄️ Database (`supabase/`)
-
-Database **PostgreSQL** cloud su Supabase con:
-- Tabella `menu_items` — catalogo prodotti con categorie e prezzi
-- Tabella `orders` — ordini con stato e dati cliente
-- **Row-Level Security (RLS)** attiva — solo admin e proprietario ordine possono accedervi
-- **Realtime** abilitato — aggiornamenti istantanei senza polling
-
-### Applica migrazioni
-```bash
-npx supabase db push
-```
-
----
-
-## 🔧 Sviluppo
-
-### Prerequisiti
-- Node.js 18+
-- Flutter SDK 3.x
-- Supabase CLI (`npm install -g supabase`)
-
-### Variabili d'ambiente
-Crea il file `client-web/.env.local`:
-```
-NEXT_PUBLIC_SUPABASE_URL=<il tuo url supabase>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<la tua anon key>
-```
-
-> ⚠️ **Non committare mai il file `.env.local` su GitHub.** È già incluso nel `.gitignore`.
-
----
-
-## 🛣️ Roadmap Futura
-- [ ] Integrazione pagamenti **Stripe**
-- [ ] Login clienti con **Clerk**
-- [ ] Storico ordini per cliente
-- [ ] Pannello statistiche vendite
-- [ ] App iOS (Manager)
-
----
-
-## 📄 Licenza
-Progetto privato — tutti i diritti riservati © Angels Livorno
+## 📄 License
+MIT License.
